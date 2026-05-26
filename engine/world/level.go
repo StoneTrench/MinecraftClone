@@ -10,7 +10,7 @@ import (
 
 type BlockId uint16
 type Level struct {
-	Chunks map[Vector3I]Chunk // Just a pointer
+	Chunks map[Vector3I]*Chunk
 }
 type Chunk struct {
 	IsGenerated bool
@@ -20,7 +20,7 @@ type Chunk struct {
 
 func GetChunk(level Level, chunk_pos Vector3I, create_new_chunk bool) *Chunk {
 	if chunk, exists := level.Chunks[chunk_pos]; exists {
-		return &chunk
+		return chunk
 	}
 
 	if !create_new_chunk {
@@ -32,10 +32,11 @@ func GetChunk(level Level, chunk_pos Vector3I, create_new_chunk bool) *Chunk {
 		Nbt:         make(map[Vector3[uint8]]any),
 		Blocks:      [CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]BlockId{},
 	}
+	level.Chunks[chunk_pos] = chunk
 
 	return chunk
 }
-func SetChunk(level Level, chunk_pos Vector3I, chunk Chunk) {
+func SetChunk(level Level, chunk_pos Vector3I, chunk *Chunk) {
 	level.Chunks[chunk_pos] = chunk
 }
 

@@ -11,3 +11,5 @@
 - [ ] Skybox
 - [ ] Voxel level rendering
 	- [ ] Sublevel rendering
+
+- [ ] Insert items and icons into text like in Factorio

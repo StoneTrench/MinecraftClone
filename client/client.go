@@ -15,6 +15,11 @@ func Init() error {
 
 	for fw.IsRunning() {
 		fw.PollEvents()
+
+		err = fw.DrawFrames()
+		if err != nil {
+			return err
+		}
 	}
 
 	fw.Deinit()

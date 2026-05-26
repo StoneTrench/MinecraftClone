@@ -22,36 +22,127 @@ func NewClearColorFloat(r, g, b, a float32) vk.ClearColorValue {
 	return c
 }
 
+func VKResultToString(res vk.Result) string {
+	switch res {
+	case vk.Success:
+		return "Success"
+	case vk.NotReady:
+		return "NotReady"
+	case vk.Timeout:
+		return "Timeout"
+	case vk.EventSet:
+		return "EventSet"
+	case vk.EventReset:
+		return "EventReset"
+	case vk.Incomplete:
+		return "Incomplete"
+	case vk.ErrorOutOfHostMemory:
+		return "ErrorOutOfHostMemory"
+	case vk.ErrorOutOfDeviceMemory:
+		return "ErrorOutOfDeviceMemory"
+	case vk.ErrorInitializationFailed:
+		return "ErrorInitializationFailed"
+	case vk.ErrorDeviceLost:
+		return "ErrorDeviceLost"
+	case vk.ErrorMemoryMapFailed:
+		return "ErrorMemoryMapFailed"
+	case vk.ErrorLayerNotPresent:
+		return "ErrorLayerNotPresent"
+	case vk.ErrorExtensionNotPresent:
+		return "ErrorExtensionNotPresent"
+	case vk.ErrorFeatureNotPresent:
+		return "ErrorFeatureNotPresent"
+	case vk.ErrorIncompatibleDriver:
+		return "ErrorIncompatibleDriver"
+	case vk.ErrorTooManyObjects:
+		return "ErrorTooManyObjects"
+	case vk.ErrorFormatNotSupported:
+		return "ErrorFormatNotSupported"
+	case vk.ErrorFragmentedPool:
+		return "ErrorFragmentedPool"
+	case vk.ErrorOutOfPoolMemory:
+		return "ErrorOutOfPoolMemory"
+	case vk.ErrorInvalidExternalHandle:
+		return "ErrorInvalidExternalHandle"
+	case vk.ErrorSurfaceLost:
+		return "ErrorSurfaceLost"
+	case vk.ErrorNativeWindowInUse:
+		return "ErrorNativeWindowInUse"
+	case vk.Suboptimal:
+		return "Suboptimal"
+	case vk.ErrorOutOfDate:
+		return "ErrorOutOfDate"
+	case vk.ErrorIncompatibleDisplay:
+		return "ErrorIncompatibleDisplay"
+	case vk.ErrorValidationFailed:
+		return "ErrorValidationFailed"
+	case vk.ErrorInvalidShaderNv:
+		return "ErrorInvalidShaderNv"
+	case vk.ErrorInvalidDrmFormatModifierPlaneLayout:
+		return "ErrorInvalidDrmFormatModifierPlaneLayout"
+	case vk.ErrorFragmentation:
+		return "ErrorFragmentation"
+	case vk.ErrorNotPermitted:
+		return "ErrorNotPermitted"
+	// case vk.ResultBeginRange: return "ResultBeginRange"
+	// case vk.ResultEndRange: return "ResultEndRange"
+	case vk.ResultRangeSize:
+		return "ResultRangeSize"
+	case vk.ResultMaxEnum:
+		return "ResultMaxEnum"
+	default:
+		panic("invalid vulkan result")
+	}
+}
+
 func HandleVKErrorResult(res vk.Result, msg string) error {
 	if res != vk.Success {
-		return fmt.Errorf("%s, vulkan error code %d", msg, res)
+		return fmt.Errorf("%s, vulkan error code (%d) %s", msg, res, VKResultToString(res))
 	}
 	return nil
 }
 
-// State
 var (
-	_running bool
+	__running bool
 
-	__window          *sdl.Window
+	__window *sdl.Window
+
 	__vulkan_instance vk.Instance
-	__surface         vk.Surface
+
+	__surface vk.Surface
+
 	__physical_device vk.PhysicalDevice
-	__logical_device  vk.Device
-	__queue_graphics  vk.Queue
 
-	__extent         vk.Extent2D
-	__surface_format vk.SurfaceFormat
+	__logical_device         vk.Device
+	__logical_graphics_queue vk.Queue
 
+	__swapchain_extent vk.Extent2D
+	__swapchain_format vk.SurfaceFormat
 	__swapchain        vk.Swapchain
 	__swapchain_images []vk.Image
 
 	__image_views []vk.ImageView
+
+	__render_pass vk.RenderPass
+
+	__pipeline_shader_module vk.ShaderModule
+	__pipeline_layout        vk.PipelineLayout
+	__pipeline               vk.Pipeline
+	__pipeline_cache         vk.PipelineCache
+
+	__framebuffers []vk.Framebuffer
+
+	__command_pool   vk.CommandPool
+	__command_buffer vk.CommandBuffer
+
+	__sync_semaphore_image_available vk.Semaphore
+	__sync_semaphore_render_finished vk.Semaphore
+	__sync_fence_inflight            vk.Fence
 )
 
 func Init() (err error) {
 	defer func() {
-		_running = true
+		__running = true
 		if err != nil {
 			Deinit()
 		}
@@ -97,10 +188,47 @@ func Init() (err error) {
 		return fmt.Errorf("failed to init image views, %w", err)
 	}
 
+	err = initRenderPass()
+	if err != nil {
+		return fmt.Errorf("failed to init render pass, %w", err)
+	}
+
+	err = initPipeline()
+	if err != nil {
+		return fmt.Errorf("failed to init vulkan pipeline, %w", err)
+	}
+
+	err = initFrameBuffers()
+	if err != nil {
+		return fmt.Errorf("failed to init framebuffers, %w", err)
+	}
+
+	err = initCommandPool()
+	if err != nil {
+		return fmt.Errorf("failed to init command pool, %w", err)
+	}
+
+	err = initSyncObjects()
+	if err != nil {
+		return fmt.Errorf("failed to init synchronization objects, %w", err)
+	}
+
 	return nil
 }
 func Deinit() {
-	_running = false
+	if __logical_device != nil {
+		vk.DeviceWaitIdle(__logical_device)
+	}
+	// if __logical_device != nil && __sync_fence_inflight != nil {
+	// 	vk.WaitForFences(__logical_device, 1, []vk.Fence{__sync_fence_inflight}, vk.True, 1000e+6)
+	// }
+
+	__running = false
+	deinitSyncObjects()
+	deinitCommandPool()
+	deinitFrameBuffers()
+	deinitPipeline()
+	deinitRenderPass()
 	deinitImageViews()
 	deinitSwapchain()
 	deinitLogicalDevice()
@@ -112,456 +240,84 @@ func Deinit() {
 }
 
 func IsRunning() bool {
-	return _running
+	return __running
 }
 func PollEvents() {
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 		switch t := event.(type) {
 		case *sdl.QuitEvent:
-			_running = false
+			__running = false
 		case *sdl.KeyboardEvent:
 			if t.Keysym.Sym == sdl.GetKeyFromName("space") {
 				fr_LInfo("SPACE PRESSED")
 			} else if t.Keysym.Sym == sdl.GetKeyFromName("escape") {
-				_running = false
+				__running = false
 			}
 		}
 	}
 }
+func DrawFrames() error {
+	res := vk.WaitForFences(__logical_device, 1, []vk.Fence{__sync_fence_inflight}, vk.True, vk.MaxUint64)
+	if err := HandleVKErrorResult(res, "failed to wait for fences"); err != nil {
+		return err
+	}
+	res = vk.ResetFences(__logical_device, 1, []vk.Fence{__sync_fence_inflight})
+	if err := HandleVKErrorResult(res, "failed to reset fences"); err != nil {
+		return err
+	}
 
-func initWindow(width, height uint32) (err error) {
-	fr_LInfo("Initializing SDL2")
-	err = sdl.Init(sdl.INIT_VIDEO | sdl.INIT_EVENTS)
+	var imageIndex uint32
+	res = vk.AcquireNextImage(__logical_device, __swapchain, vk.MaxUint64, __sync_semaphore_image_available, nil, &imageIndex)
+	// if err := HandleVKErrorResult(res, "failed to acquire next image"); err != nil {
+	// 	return err
+	// }
+
+	res = vk.ResetCommandBuffer(__command_buffer, 0)
+	if err := HandleVKErrorResult(res, "failed to reset command buffer"); err != nil {
+		return err
+	}
+
+	err := recordCommandBuffer(__command_buffer, imageIndex)
 	if err != nil {
 		return err
 	}
 
-	fr_LInfo("Loading vulkan dll")
-	err = sdl.VulkanLoadLibrary("vulkan-1.dll")
-	if err != nil {
+	wait_semaphores := []vk.Semaphore{__sync_semaphore_image_available}
+	signal_semaphores := []vk.Semaphore{__sync_semaphore_render_finished}
+
+	submitInfo := vk.SubmitInfo{
+		SType:                vk.StructureTypeSubmitInfo,
+		PNext:                nil,
+		WaitSemaphoreCount:   uint32(len(wait_semaphores)),
+		PWaitSemaphores:      wait_semaphores,
+		PWaitDstStageMask:    []vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)},
+		CommandBufferCount:   1,
+		PCommandBuffers:      []vk.CommandBuffer{__command_buffer},
+		SignalSemaphoreCount: uint32(len(signal_semaphores)),
+		PSignalSemaphores:    signal_semaphores,
+	}
+
+	res = vk.QueueSubmit(__logical_graphics_queue, 1, []vk.SubmitInfo{submitInfo}, __sync_fence_inflight)
+	if err := HandleVKErrorResult(res, "failed to submit draw command buffer to queue"); err != nil {
 		return err
 	}
 
-	fr_LInfo("Initializing window")
-	__window, err = sdl.CreateWindow(
-		fmt.Sprintf("%s  —  v%d.%d.%d", shared.PROJECT_NAME, shared.PROJECT_VERSION_MAJOR, shared.PROJECT_VERSION_MINOR, shared.PROJECT_VERSION_PATCH),
-		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		int32(width), int32(height),
-		sdl.WINDOW_VULKAN,
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-func deinitWindow() {
-	if __window != nil {
-		fr_LInfo("Deinitializing window")
-		__window.Destroy()
-		__window = nil
-	}
-	fr_LInfo("Unloading vulkan dll")
-	sdl.VulkanUnloadLibrary()
-	fr_LInfo("Deinitializing SDL2")
-	sdl.Quit()
-}
-
-func initVulkan() error {
-	fr_LInfo("Initializing vulkan")
-	procAddr := sdl.VulkanGetVkGetInstanceProcAddr()
-	if procAddr == nil {
-		return fmt.Errorf("failed to get VkGetInstanceProcAddr from SDL2")
-	}
-	vk.SetGetInstanceProcAddr(procAddr)
-
-	err := vk.Init()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-func deinitVulkan() {
-	fr_LInfo("Deinitializing vulkan")
-	// nothing
-}
-
-func initVkInstance() error {
-	fr_LInfo("Initializing vulkan instance")
-
-	application_info := vk.ApplicationInfo{
-		SType:              vk.StructureTypeApplicationInfo,
+	// End of the drawframe function
+	presentInfo := vk.PresentInfo{
+		SType:              vk.StructureTypePresentInfo,
 		PNext:              nil,
-		PApplicationName:   shared.PROJECT_NAME + "\x00",
-		ApplicationVersion: vk.MakeVersion(shared.PROJECT_VERSION_MAJOR, shared.PROJECT_VERSION_MINOR, shared.PROJECT_VERSION_PATCH),
-		PEngineName:        "No Engine\x00",
-		EngineVersion:      vk.MakeVersion(1, 0, 0),
-		ApiVersion:         vk.ApiVersion10,
+		WaitSemaphoreCount: 1,
+		PWaitSemaphores:    signal_semaphores,
+		SwapchainCount:     1,
+		PSwapchains:        []vk.Swapchain{__swapchain},
+		PImageIndices:      []uint32{imageIndex},
+		PResults:           nil,
 	}
 
-	layers := []string{
-		// "VK_LAYER_KHRONOS_validation",
-	}
-	extensions := __window.VulkanGetInstanceExtensions()
-
-	fr_LInfo("Layers: " + fmt.Sprint(layers))
-	fr_LInfo("Extensions: " + fmt.Sprint(extensions))
-
-	instance_info := vk.InstanceCreateInfo{
-		SType:                   vk.StructureTypeInstanceCreateInfo,
-		PNext:                   nil,
-		Flags:                   0,
-		PApplicationInfo:        &application_info,
-		EnabledLayerCount:       uint32(len(layers)),
-		PpEnabledLayerNames:     layers,
-		EnabledExtensionCount:   uint32(len(extensions)),
-		PpEnabledExtensionNames: extensions,
-	}
-	res := vk.CreateInstance(&instance_info, nil, &__vulkan_instance)
-	err := HandleVKErrorResult(res, "failed to create vulkan instance")
-	if err != nil {
-		return err
-	}
-
-	err = vk.InitInstance(__vulkan_instance)
-	if err != nil {
-		return err
-	}
+	res = vk.QueuePresent(__logical_graphics_queue, &presentInfo)
+	// if err := HandleVKErrorResult(res, "failed to present the queue"); err != nil {
+	// 	return err
+	// }
 
 	return nil
-}
-func deinitVkInstance() {
-	if __vulkan_instance != nil {
-		fr_LInfo("Deinitializing vulkan instance")
-		vk.DestroyInstance(__vulkan_instance, nil)
-		__vulkan_instance = nil
-	}
-}
-
-func initPhysicalDevices() error {
-	fr_LInfo("Initializing physical devices")
-
-	count := uint32(0)
-	res := vk.EnumeratePhysicalDevices(__vulkan_instance, &count, nil)
-	err := HandleVKErrorResult(res, "failed to enumerate physical devices")
-	if err != nil {
-		return err
-	}
-	devices := make([]vk.PhysicalDevice, count)
-	res = vk.EnumeratePhysicalDevices(__vulkan_instance, &count, devices)
-	err = HandleVKErrorResult(res, "failed to enumerate physical devices")
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		return fmt.Errorf("failed to find gpus with vulkan support")
-	}
-
-	// Pick physical device
-	__physical_device = nil
-	for i := uint32(0); i < count; i++ {
-		pdev := devices[i]
-
-		if isDeviceSuitable(pdev) {
-			__physical_device = pdev
-			break
-		}
-	}
-
-	if __physical_device == nil {
-		return fmt.Errorf("failed to find suitable physical device")
-	}
-
-	return nil
-}
-func isDeviceSuitable(pdev vk.PhysicalDevice) bool {
-	properties := vk.PhysicalDeviceProperties{}
-	vk.GetPhysicalDeviceProperties(pdev, &properties)
-	properties.Deref()
-	defer properties.Free()
-
-	if properties.ApiVersion < vk.ApiVersion10 {
-		return false
-	}
-
-	if properties.DeviceType != vk.PhysicalDeviceTypeDiscreteGpu {
-		return false
-	}
-
-	features := vk.PhysicalDeviceFeatures{}
-	vk.GetPhysicalDeviceFeatures(pdev, &features)
-	features.Deref()
-	defer features.Free()
-
-	if features.GeometryShader == vk.False {
-		return false
-	}
-
-	_, err := getValidQueueFamilyIndex(pdev)
-	return err == nil
-}
-func getValidQueueFamilyIndex(pdev vk.PhysicalDevice) (uint32, error) {
-	queue_props_count := uint32(0)
-	vk.GetPhysicalDeviceQueueFamilyProperties(pdev, &queue_props_count, nil)
-	queue_props := make([]vk.QueueFamilyProperties, queue_props_count)
-	vk.GetPhysicalDeviceQueueFamilyProperties(pdev, &queue_props_count, queue_props)
-
-	for i := uint32(0); i < queue_props_count; i++ {
-		queue_props[i].Deref()
-		var is_surface_support vk.Bool32 = vk.False
-		vk.GetPhysicalDeviceSurfaceSupport(pdev, i, __surface, &is_surface_support)
-		is_valid := queue_props[i].QueueFlags&vk.QueueFlags(vk.QueueGraphicsBit) != 0 && (is_surface_support == vk.True)
-
-		queue_props[i].Free()
-
-		if is_valid {
-			return i, nil
-		}
-	}
-
-	return 0, fmt.Errorf("failed to find valid family index")
-}
-func deinitPhysicalDevices() {
-	if __physical_device != nil {
-		fr_LInfo("Deinitializing physical devices")
-		__physical_device = nil
-	}
-}
-
-func initLogicalDevice() error {
-	fr_LInfo("Initializing logical device")
-
-	family_index, err := getValidQueueFamilyIndex(__physical_device)
-	if err != nil {
-		return err
-	}
-
-	devQueueInfo := vk.DeviceQueueCreateInfo{
-		SType:            vk.StructureTypeDeviceQueueCreateInfo,
-		PNext:            nil,
-		Flags:            0,
-		QueueFamilyIndex: family_index,
-		QueueCount:       1,
-		PQueuePriorities: []float32{0.5},
-	}
-
-	deviceFeatures := vk.PhysicalDeviceFeatures{}
-
-	extensions := []string{"VK_KHR_swapchain\x00"}
-
-	devInfo := vk.DeviceCreateInfo{
-		SType:                   vk.StructureTypeDeviceCreateInfo,
-		PNext:                   nil,
-		Flags:                   0,
-		QueueCreateInfoCount:    1,
-		PQueueCreateInfos:       []vk.DeviceQueueCreateInfo{devQueueInfo},
-		EnabledLayerCount:       0,
-		PpEnabledLayerNames:     nil,
-		EnabledExtensionCount:   uint32(len(extensions)),
-		PpEnabledExtensionNames: extensions,
-		PEnabledFeatures:        []vk.PhysicalDeviceFeatures{deviceFeatures},
-	}
-
-	res := vk.CreateDevice(__physical_device, &devInfo, nil, &__logical_device)
-	err = HandleVKErrorResult(res, "failed to create logical device")
-	if err != nil {
-		return err
-	}
-
-	vk.GetDeviceQueue(__logical_device, family_index, 0, &__queue_graphics)
-
-	return nil
-}
-func deinitLogicalDevice() {
-	if __logical_device != nil {
-		fr_LInfo("Deinitializing logical device")
-		vk.DestroyDevice(__logical_device, nil)
-		__logical_device = nil
-	}
-}
-
-func initSurface() error {
-	fr_LInfo("Initializing surface")
-	ptr, err := __window.VulkanCreateSurface(__vulkan_instance)
-	if err != nil {
-		return err
-	}
-	__surface = vk.SurfaceFromPointer(uintptr(ptr))
-
-	return nil
-}
-func deinitSurface() {
-	if __surface != nil {
-		fr_LInfo("Deinitializing surface")
-		vk.DestroySurface(__vulkan_instance, __surface, nil)
-	}
-}
-
-func initSwapchain() error {
-	fr_LInfo("Initializing swapchain")
-
-	capabilities := vk.SurfaceCapabilities{}
-	res := vk.GetPhysicalDeviceSurfaceCapabilities(__physical_device, __surface, &capabilities)
-	err := HandleVKErrorResult(res, "failed to query surface capabilities")
-	if err != nil {
-		return err
-	}
-
-	formats_count := uint32(0)
-	res = vk.GetPhysicalDeviceSurfaceFormats(__physical_device, __surface, &formats_count, nil)
-	err = HandleVKErrorResult(res, "failed to query surface format count")
-	if err != nil {
-		return err
-	}
-	if formats_count == 0 {
-		return fmt.Errorf("no surface formats found")
-	}
-	formats := make([]vk.SurfaceFormat, formats_count)
-	res = vk.GetPhysicalDeviceSurfaceFormats(__physical_device, __surface, &formats_count, formats)
-	err = HandleVKErrorResult(res, "failed to query surface formats")
-	if err != nil {
-		return err
-	}
-
-	presentModes_count := uint32(0)
-	res = vk.GetPhysicalDeviceSurfacePresentModes(__physical_device, __surface, &presentModes_count, nil)
-	err = HandleVKErrorResult(res, "failed to query surface present mode count")
-	if err != nil {
-		return err
-	}
-	if presentModes_count == 0 {
-		return fmt.Errorf("no present modes found")
-	}
-	presentModes := make([]vk.PresentMode, presentModes_count)
-	res = vk.GetPhysicalDeviceSurfacePresentModes(__physical_device, __surface, &presentModes_count, presentModes)
-	err = HandleVKErrorResult(res, "failed to query surface present modes")
-	if err != nil {
-		return err
-	}
-
-	// Build swapchain
-
-	// Find best format
-	format := vk.SurfaceFormat{}
-	{
-		found := false
-		for i := uint32(0); i < formats_count; i++ {
-			formats[i].Deref()
-			found = formats[i].Format == vk.FormatB8g8r8a8Srgb && formats[i].ColorSpace == vk.ColorSpaceSrgbNonlinear
-			formats[i].Free()
-			if found {
-				format = formats[i]
-				break
-			}
-		}
-		if !found {
-			format = formats[0]
-		}
-	}
-
-	// Check if fifo is available
-	present_mode := vk.PresentModeFifo
-	{
-		found := false
-		for i := uint32(0); i < presentModes_count; i++ {
-			if presentModes[i] == present_mode {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("failed to find eFifo present mode")
-		}
-	}
-
-	extent := vk.Extent2D{}
-	{
-		capabilities.CurrentExtent.Deref()
-		if capabilities.CurrentExtent.Height != vk.MaxUint32 {
-			extent.Width = capabilities.CurrentExtent.Width
-			extent.Height = capabilities.CurrentExtent.Height
-		} else {
-			w, h := __window.VulkanGetDrawableSize()
-			extent.Width = min(max(uint32(w), capabilities.MinImageExtent.Width), capabilities.MaxImageExtent.Width)
-			extent.Height = min(max(uint32(h), capabilities.MinImageExtent.Height), capabilities.MaxImageExtent.Height)
-		}
-
-		capabilities.CurrentExtent.Free()
-	}
-
-	image_count := max(3, capabilities.MinImageCount)
-	if 0 < capabilities.MaxImageCount && capabilities.MaxImageCount < image_count {
-		image_count = capabilities.MaxImageCount
-	}
-
-	/*
-		The imageUsage bit field specifies what kind of operations we’ll use
-		the images in the swap chain for. In this tutorial, we’re going to render
-		directly to them, which means that they’re used as color attachment.
-		It is also possible that you’ll render images to a separate image first to
-		perform operations like post-processing. In that case you may use a
-		value like vk::ImageUsageFlagBits::eTransferDst instead and use a memory
-		operation to transfer the rendered image to a swap chain image.
-	*/
-
-	__extent = extent
-	__surface_format = format
-
-	swInfo := vk.SwapchainCreateInfo{
-		SType:                 vk.StructureTypeSwapchainCreateInfo,
-		PNext:                 nil,
-		Flags:                 0,
-		Surface:               __surface,
-		MinImageCount:         image_count,
-		ImageFormat:           format.Format,
-		ImageColorSpace:       format.ColorSpace,
-		ImageExtent:           extent,
-		ImageArrayLayers:      1,
-		ImageUsage:            vk.ImageUsageFlags(vk.ImageUsageColorAttachmentBit),
-		ImageSharingMode:      vk.SharingModeExclusive,
-		QueueFamilyIndexCount: 0,
-		PQueueFamilyIndices:   nil,
-		PreTransform:          capabilities.CurrentTransform,
-		CompositeAlpha:        vk.CompositeAlphaOpaqueBit,
-		PresentMode:           present_mode,
-		Clipped:               vk.True,
-		OldSwapchain:          __swapchain,
-	}
-
-	res = vk.CreateSwapchain(__logical_device, &swInfo, nil, &__swapchain)
-	err = HandleVKErrorResult(res, "failed to create swapchain")
-	if err != nil {
-		return err
-	}
-	sw_image_count := uint32(0)
-	res = vk.GetSwapchainImages(__logical_device, __swapchain, &sw_image_count, nil)
-	err = HandleVKErrorResult(res, "failed to get swapchain image count")
-	if err != nil {
-		return err
-	}
-	__swapchain_images = make([]vk.Image, sw_image_count)
-	res = vk.GetSwapchainImages(__logical_device, __swapchain, &sw_image_count, __swapchain_images)
-	err = HandleVKErrorResult(res, "failed to get swapchain images")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-func deinitSwapchain() {
-	if __swapchain != nil {
-		fr_LInfo("Deinitializing swapchain")
-		vk.DestroySwapchain(__logical_device, __swapchain, nil)
-		__swapchain = nil
-		__swapchain_images = nil
-	}
-}
-
-func initImageViews() error {
-	return nil
-}
-func deinitImageViews() {
-
 }

@@ -1,0 +1,1 @@
+slangc assets/shaders/shader.slang -target spirv -profile spirv_1_3 -emit-spirv-directly -fvk-use-entrypoint-name -entry vertMain -entry fragMain -o assets/shaders/shader.spv
