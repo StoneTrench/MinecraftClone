@@ -2,6 +2,8 @@ package rendering
 
 import (
 	"fmt"
+
+	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
 	vk "github.com/vulkan-go/vulkan"
 )
 
@@ -157,7 +159,7 @@ func initSwapchain() error {
 		CompositeAlpha:        vk.CompositeAlphaOpaqueBit,
 		PresentMode:           present_mode,
 		Clipped:               vk.True,
-		OldSwapchain:          __swapchain,
+		OldSwapchain:          nil,
 	}
 
 	__swapchain = nil

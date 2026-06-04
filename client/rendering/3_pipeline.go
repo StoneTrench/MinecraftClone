@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
 	vk "github.com/vulkan-go/vulkan"
 )
 
@@ -161,7 +162,6 @@ func initPipeline_ShaderStages() ([]vk.PipelineShaderStageCreateInfo, error) {
 
 	return shaderStages, nil
 }
-
 func initPipeline_PipelineLayout() error {
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
@@ -177,20 +177,42 @@ func initPipeline_PipelineLayout() error {
 	res := vk.CreatePipelineLayout(__logical_device, &pipelineLayoutInfo, nil, &__pipeline_layout)
 	return HandleVKErrorResult(res, "failed to create pipeline layout")
 }
+func initPipeline_PipelineCache() error {
+	cacheInfo := vk.PipelineCacheCreateInfo{
+		SType:           vk.StructureTypePipelineCacheCreateInfo,
+		PNext:           nil,
+		Flags:           0,
+		InitialDataSize: 0,
+		PInitialData:    nil,
+	}
 
+	__pipeline_cache = nil
+	res := vk.CreatePipelineCache(__logical_device, &cacheInfo, nil, &__pipeline_cache)
+	return HandleVKErrorResult(res, "failed to create pipeline cache")
+}
 func initPipeline_VertexInputState() vk.PipelineVertexInputStateCreateInfo {
 	vertexInputStateInfo := vk.PipelineVertexInputStateCreateInfo{
 		SType:                           vk.StructureTypePipelineVertexInputStateCreateInfo,
 		PNext:                           nil,
 		Flags:                           0,
-		VertexBindingDescriptionCount:   0,
-		PVertexBindingDescriptions:      nil,
-		VertexAttributeDescriptionCount: 0,
-		PVertexAttributeDescriptions:    nil,
+		VertexBindingDescriptionCount:   1,
+		PVertexBindingDescriptions:      vertex2D_GetBindingDescription(),
+		VertexAttributeDescriptionCount: 2,
+		PVertexAttributeDescriptions:    vertex2D_GetAttributeDescription(),
 	}
 	return vertexInputStateInfo
 }
+func initPipeline_InputAssemblyState() vk.PipelineInputAssemblyStateCreateInfo {
+	inputAssemblyInfo := vk.PipelineInputAssemblyStateCreateInfo{
+		SType:                  vk.StructureTypePipelineInputAssemblyStateCreateInfo,
+		PNext:                  nil,
+		Flags:                  0,
+		Topology:               vk.PrimitiveTopologyTriangleList, // change how you want to handle building the mesh from the vertices
+		PrimitiveRestartEnable: vk.False,
+	}
 
+	return inputAssemblyInfo
+}
 func initPipeline_ViewportState() vk.PipelineViewportStateCreateInfo {
 	viewport := vk.Viewport{
 		X:        0,
@@ -218,24 +240,6 @@ func initPipeline_ViewportState() vk.PipelineViewportStateCreateInfo {
 
 	return viewportStateInfo
 }
-
-func initPipeline_DynamicState() vk.PipelineDynamicStateCreateInfo {
-	dynamicStates := []vk.DynamicState{
-		vk.DynamicStateViewport,
-		vk.DynamicStateScissor,
-	}
-
-	dynamicStateInfo := vk.PipelineDynamicStateCreateInfo{
-		SType:             vk.StructureTypePipelineDynamicStateCreateInfo,
-		PNext:             nil,
-		Flags:             0,
-		DynamicStateCount: uint32(len(dynamicStates)),
-		PDynamicStates:    dynamicStates,
-	}
-
-	return dynamicStateInfo
-}
-
 func initPipeline_RasterizerState() vk.PipelineRasterizationStateCreateInfo {
 	rasterizerStateInfo := vk.PipelineRasterizationStateCreateInfo{
 		SType:                   vk.StructureTypePipelineRasterizationStateCreateInfo,
@@ -256,7 +260,6 @@ func initPipeline_RasterizerState() vk.PipelineRasterizationStateCreateInfo {
 
 	return rasterizerStateInfo
 }
-
 func initPipeline_MultisampleState() vk.PipelineMultisampleStateCreateInfo {
 	multisampleStateInfo := vk.PipelineMultisampleStateCreateInfo{
 		SType:                 vk.StructureTypePipelineMultisampleStateCreateInfo,
@@ -272,7 +275,6 @@ func initPipeline_MultisampleState() vk.PipelineMultisampleStateCreateInfo {
 
 	return multisampleStateInfo
 }
-
 func initPipeline_StencilState() vk.PipelineDepthStencilStateCreateInfo {
 	stencilStateInfo := vk.PipelineDepthStencilStateCreateInfo{
 		SType:                 vk.StructureTypePipelineDepthStencilStateCreateInfo,
@@ -291,22 +293,7 @@ func initPipeline_StencilState() vk.PipelineDepthStencilStateCreateInfo {
 
 	return stencilStateInfo
 }
-
 func initPipeline_ColorBlendState() vk.PipelineColorBlendStateCreateInfo {
-
-	// colorBlendAttachments := vk.PipelineColorBlendAttachmentState{
-	// 	BlendEnable:         vk.True,
-	// 	SrcColorBlendFactor: vk.BlendFactorSrcAlpha,
-	// 	DstColorBlendFactor: vk.BlendFactorDstAlpha,
-	// 	ColorBlendOp:        vk.BlendOpAdd,
-	// 	SrcAlphaBlendFactor: vk.BlendFactorOne,
-	// 	DstAlphaBlendFactor: vk.BlendFactorZero,
-	// 	AlphaBlendOp:        vk.BlendOpAdd,
-	// 	ColorWriteMask: vk.ColorComponentFlags(vk.ColorComponentRBit) |
-	// 		vk.ColorComponentFlags(vk.ColorComponentGBit) |
-	// 		vk.ColorComponentFlags(vk.ColorComponentBBit) |
-	// 		vk.ColorComponentFlags(vk.ColorComponentABit),
-	// }
 	colorBlendAttachments := vk.PipelineColorBlendAttachmentState{
 		BlendEnable: vk.False,
 		ColorWriteMask: vk.ColorComponentFlags(vk.ColorComponentRBit) |
@@ -328,31 +315,21 @@ func initPipeline_ColorBlendState() vk.PipelineColorBlendStateCreateInfo {
 
 	return colorBlendState
 }
-
-func initPipeline_InputAssemblyState() vk.PipelineInputAssemblyStateCreateInfo {
-	inputAssemblyInfo := vk.PipelineInputAssemblyStateCreateInfo{
-		SType:                  vk.StructureTypePipelineInputAssemblyStateCreateInfo,
-		PNext:                  nil,
-		Flags:                  0,
-		Topology:               vk.PrimitiveTopologyTriangleFan,
-		PrimitiveRestartEnable: vk.False,
+func initPipeline_DynamicState() vk.PipelineDynamicStateCreateInfo {
+	dynamicStates := []vk.DynamicState{
+		vk.DynamicStateViewport,
+		vk.DynamicStateScissor,
 	}
 
-	return inputAssemblyInfo
-}
-
-func initPipeline_PipelineCache() error {
-	cacheInfo := vk.PipelineCacheCreateInfo{
-		SType:           vk.StructureTypePipelineCacheCreateInfo,
-		PNext:           nil,
-		Flags:           0,
-		InitialDataSize: 0,
-		PInitialData:    nil,
+	dynamicStateInfo := vk.PipelineDynamicStateCreateInfo{
+		SType:             vk.StructureTypePipelineDynamicStateCreateInfo,
+		PNext:             nil,
+		Flags:             0,
+		DynamicStateCount: uint32(len(dynamicStates)),
+		PDynamicStates:    dynamicStates,
 	}
 
-	__pipeline_cache = nil
-	res := vk.CreatePipelineCache(__logical_device, &cacheInfo, nil, &__pipeline_cache)
-	return HandleVKErrorResult(res, "failed to create pipeline cache")
+	return dynamicStateInfo
 }
 
 func initPipeline() (err error) {
@@ -373,17 +350,13 @@ func initPipeline() (err error) {
 		return err
 	}
 
-	inputAssemblyStateInfo := initPipeline_InputAssemblyState()
 	vertexInputStateInfo := initPipeline_VertexInputState()
+	inputAssemblyStateInfo := initPipeline_InputAssemblyState()
 	viewportStateInfo := initPipeline_ViewportState()
 	rasterizerStateInfo := initPipeline_RasterizerState()
 	multisampleStateInfo := initPipeline_MultisampleState()
 	stencilStateInfo := initPipeline_StencilState()
 	colorBlendStateInfo := initPipeline_ColorBlendState()
-
-	// fr_LInfo(fmt.Sprintf("PViewports nil? %t", viewportStateInfo.PViewports == nil))
-	// fr_LInfo(fmt.Sprintf("PScissors nil? %t", viewportStateInfo.PScissors == nil))
-
 	dynamicStateInfo := initPipeline_DynamicState()
 
 	// Final
@@ -410,8 +383,6 @@ func initPipeline() (err error) {
 	}
 
 	pipelines := make([]vk.Pipeline, 1)
-	fr_LInfo(fmt.Sprint(viewportStateInfo))
-	fr_LInfo(fmt.Sprint(__logical_device, __pipeline_cache, 1, []vk.GraphicsPipelineCreateInfo{graphicsPipelineInfo}, nil, pipelines))
 	res := vk.CreateGraphicsPipelines(__logical_device, __pipeline_cache, 1, []vk.GraphicsPipelineCreateInfo{graphicsPipelineInfo}, nil, pipelines)
 	err = HandleVKErrorResult(res, "failed to create graphics pipelines")
 	if err != nil {

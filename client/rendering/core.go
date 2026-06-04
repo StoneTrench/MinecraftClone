@@ -3,104 +3,21 @@ package rendering
 
 import (
 	"fmt"
-	"unsafe"
 
-	shared "github.com/StoneTrench/go-mc-clone/shared"
+	game "github.com/StoneTrench/go-mc-clone/game"
 	"github.com/veandco/go-sdl2/sdl"
 
+	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
 	vk "github.com/vulkan-go/vulkan"
 )
 
 func fr_LInfo(msg string) {
-	shared.LInfo(msg, "module", "rendering")
+	game.LInfo(msg, "module", "rendering")
 }
 
-func NewClearColorFloat(r, g, b, a float32) vk.ClearColorValue {
-	var c vk.ClearColorValue
-	ptr := (*[4]float32)(unsafe.Pointer(&c))
-	ptr[0], ptr[1], ptr[2], ptr[3] = r, g, b, a
-	return c
-}
-
-func VKResultToString(res vk.Result) string {
-	switch res {
-	case vk.Success:
-		return "Success"
-	case vk.NotReady:
-		return "NotReady"
-	case vk.Timeout:
-		return "Timeout"
-	case vk.EventSet:
-		return "EventSet"
-	case vk.EventReset:
-		return "EventReset"
-	case vk.Incomplete:
-		return "Incomplete"
-	case vk.ErrorOutOfHostMemory:
-		return "ErrorOutOfHostMemory"
-	case vk.ErrorOutOfDeviceMemory:
-		return "ErrorOutOfDeviceMemory"
-	case vk.ErrorInitializationFailed:
-		return "ErrorInitializationFailed"
-	case vk.ErrorDeviceLost:
-		return "ErrorDeviceLost"
-	case vk.ErrorMemoryMapFailed:
-		return "ErrorMemoryMapFailed"
-	case vk.ErrorLayerNotPresent:
-		return "ErrorLayerNotPresent"
-	case vk.ErrorExtensionNotPresent:
-		return "ErrorExtensionNotPresent"
-	case vk.ErrorFeatureNotPresent:
-		return "ErrorFeatureNotPresent"
-	case vk.ErrorIncompatibleDriver:
-		return "ErrorIncompatibleDriver"
-	case vk.ErrorTooManyObjects:
-		return "ErrorTooManyObjects"
-	case vk.ErrorFormatNotSupported:
-		return "ErrorFormatNotSupported"
-	case vk.ErrorFragmentedPool:
-		return "ErrorFragmentedPool"
-	case vk.ErrorOutOfPoolMemory:
-		return "ErrorOutOfPoolMemory"
-	case vk.ErrorInvalidExternalHandle:
-		return "ErrorInvalidExternalHandle"
-	case vk.ErrorSurfaceLost:
-		return "ErrorSurfaceLost"
-	case vk.ErrorNativeWindowInUse:
-		return "ErrorNativeWindowInUse"
-	case vk.Suboptimal:
-		return "Suboptimal"
-	case vk.ErrorOutOfDate:
-		return "ErrorOutOfDate"
-	case vk.ErrorIncompatibleDisplay:
-		return "ErrorIncompatibleDisplay"
-	case vk.ErrorValidationFailed:
-		return "ErrorValidationFailed"
-	case vk.ErrorInvalidShaderNv:
-		return "ErrorInvalidShaderNv"
-	case vk.ErrorInvalidDrmFormatModifierPlaneLayout:
-		return "ErrorInvalidDrmFormatModifierPlaneLayout"
-	case vk.ErrorFragmentation:
-		return "ErrorFragmentation"
-	case vk.ErrorNotPermitted:
-		return "ErrorNotPermitted"
-	// case vk.ResultBeginRange: return "ResultBeginRange"
-	// case vk.ResultEndRange: return "ResultEndRange"
-	case vk.ResultRangeSize:
-		return "ResultRangeSize"
-	case vk.ResultMaxEnum:
-		return "ResultMaxEnum"
-	default:
-		panic("invalid vulkan result")
-	}
-}
-
-func HandleVKErrorResult(res vk.Result, msg string) error {
-	if res != vk.Success {
-		return fmt.Errorf("%s, vulkan error code (%d) %s", msg, res, VKResultToString(res))
-	}
-	return nil
-}
+const (
+	MAX_FRAMES_IN_FLIGHT = 2
+)
 
 var (
 	__running bool
@@ -132,12 +49,18 @@ var (
 
 	__framebuffers []vk.Framebuffer
 
-	__command_pool   vk.CommandPool
-	__command_buffer vk.CommandBuffer
+	__command_pool vk.CommandPool
 
-	__sync_semaphore_image_available vk.Semaphore
-	__sync_semaphore_render_finished vk.Semaphore
-	__sync_fence_inflight            vk.Fence
+	__vertex_buffer        vk.Buffer
+	__vertex_buffer_memory vk.DeviceMemory
+
+	__command_buffers []vk.CommandBuffer
+
+	__sync_semaphore_wait       []vk.Semaphore
+	__sync_semaphore_signal     []vk.Semaphore
+	__sync_fence_inflights      []vk.Fence
+	__current_frame             int
+	__force_frame_buffer_reinit bool
 )
 
 func Init() (err error) {
@@ -208,6 +131,16 @@ func Init() (err error) {
 		return fmt.Errorf("failed to init command pool, %w", err)
 	}
 
+	err = initVertexBuffer()
+	if err != nil {
+		return fmt.Errorf("failed to init vertex buffer, %w", err)
+	}
+
+	err = initCommandBuffers()
+	if err != nil {
+		return fmt.Errorf("failed to init command buffers, %w", err)
+	}
+
 	err = initSyncObjects()
 	if err != nil {
 		return fmt.Errorf("failed to init synchronization objects, %w", err)
@@ -219,20 +152,23 @@ func Deinit() {
 	if __logical_device != nil {
 		vk.DeviceWaitIdle(__logical_device)
 	}
-	// if __logical_device != nil && __sync_fence_inflight != nil {
-	// 	vk.WaitForFences(__logical_device, 1, []vk.Fence{__sync_fence_inflight}, vk.True, 1000e+6)
-	// }
 
 	__running = false
 	deinitSyncObjects()
+	deinitCommandBuffers()
+	deinitVertexBuffer()
 	deinitCommandPool()
 	deinitFrameBuffers()
+
 	deinitPipeline()
 	deinitRenderPass()
+
 	deinitImageViews()
 	deinitSwapchain()
+
 	deinitLogicalDevice()
 	deinitPhysicalDevices()
+
 	deinitSurface()
 	deinitVkInstance()
 	deinitVulkan()
@@ -246,44 +182,58 @@ func PollEvents() {
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 		switch t := event.(type) {
 		case *sdl.QuitEvent:
-			__running = false
+			Stop()
 		case *sdl.KeyboardEvent:
 			if t.Keysym.Sym == sdl.GetKeyFromName("space") {
 				fr_LInfo("SPACE PRESSED")
 			} else if t.Keysym.Sym == sdl.GetKeyFromName("escape") {
-				__running = false
+				Stop()
+			}
+		case *sdl.WindowEvent:
+			switch t.Type {
+			case sdl.WINDOWEVENT_RESIZED:
+				__force_frame_buffer_reinit = true
+			case sdl.WINDOWEVENT_SIZE_CHANGED:
+				__force_frame_buffer_reinit = true
 			}
 		}
 	}
 }
 func DrawFrames() error {
-	res := vk.WaitForFences(__logical_device, 1, []vk.Fence{__sync_fence_inflight}, vk.True, vk.MaxUint64)
+	res := vk.WaitForFences(__logical_device, 1, []vk.Fence{__sync_fence_inflights[__current_frame]}, vk.True, vk.MaxUint64)
 	if err := HandleVKErrorResult(res, "failed to wait for fences"); err != nil {
-		return err
-	}
-	res = vk.ResetFences(__logical_device, 1, []vk.Fence{__sync_fence_inflight})
-	if err := HandleVKErrorResult(res, "failed to reset fences"); err != nil {
 		return err
 	}
 
 	var imageIndex uint32
-	res = vk.AcquireNextImage(__logical_device, __swapchain, vk.MaxUint64, __sync_semaphore_image_available, nil, &imageIndex)
-	// if err := HandleVKErrorResult(res, "failed to acquire next image"); err != nil {
-	// 	return err
-	// }
+	res = vk.AcquireNextImage(__logical_device, __swapchain, vk.MaxUint64, __sync_semaphore_wait[__current_frame], nil, &imageIndex)
+	if res == vk.ErrorOutOfDate {
+		err := reinitSwapchains()
+		if err != nil {
+			return fmt.Errorf("failed to recreate swapchain %w", err)
+		}
+		return nil
+	} else if err := HandleVKErrorResult(res, "failed to aquire next image"); err != nil {
+		return err
+	}
 
-	res = vk.ResetCommandBuffer(__command_buffer, 0)
+	res = vk.ResetFences(__logical_device, 1, []vk.Fence{__sync_fence_inflights[__current_frame]})
+	if err := HandleVKErrorResult(res, "failed to reset fences"); err != nil {
+		return err
+	}
+
+	res = vk.ResetCommandBuffer(__command_buffers[__current_frame], 0)
 	if err := HandleVKErrorResult(res, "failed to reset command buffer"); err != nil {
 		return err
 	}
 
-	err := recordCommandBuffer(__command_buffer, imageIndex)
+	err := recordCommandBuffer(__command_buffers[__current_frame], imageIndex)
 	if err != nil {
 		return err
 	}
 
-	wait_semaphores := []vk.Semaphore{__sync_semaphore_image_available}
-	signal_semaphores := []vk.Semaphore{__sync_semaphore_render_finished}
+	wait_semaphores := []vk.Semaphore{__sync_semaphore_wait[__current_frame]}
+	signal_semaphores := []vk.Semaphore{__sync_semaphore_signal[imageIndex]}
 
 	submitInfo := vk.SubmitInfo{
 		SType:                vk.StructureTypeSubmitInfo,
@@ -292,12 +242,12 @@ func DrawFrames() error {
 		PWaitSemaphores:      wait_semaphores,
 		PWaitDstStageMask:    []vk.PipelineStageFlags{vk.PipelineStageFlags(vk.PipelineStageColorAttachmentOutputBit)},
 		CommandBufferCount:   1,
-		PCommandBuffers:      []vk.CommandBuffer{__command_buffer},
+		PCommandBuffers:      []vk.CommandBuffer{__command_buffers[__current_frame]},
 		SignalSemaphoreCount: uint32(len(signal_semaphores)),
 		PSignalSemaphores:    signal_semaphores,
 	}
 
-	res = vk.QueueSubmit(__logical_graphics_queue, 1, []vk.SubmitInfo{submitInfo}, __sync_fence_inflight)
+	res = vk.QueueSubmit(__logical_graphics_queue, 1, []vk.SubmitInfo{submitInfo}, __sync_fence_inflights[__current_frame])
 	if err := HandleVKErrorResult(res, "failed to submit draw command buffer to queue"); err != nil {
 		return err
 	}
@@ -315,9 +265,21 @@ func DrawFrames() error {
 	}
 
 	res = vk.QueuePresent(__logical_graphics_queue, &presentInfo)
-	// if err := HandleVKErrorResult(res, "failed to present the queue"); err != nil {
-	// 	return err
-	// }
+	if res == vk.ErrorOutOfDate || res == vk.Suboptimal || __force_frame_buffer_reinit {
+		__force_frame_buffer_reinit = false
+		err := reinitSwapchains()
+		if err != nil {
+			return fmt.Errorf("failed to recreate swapchain %w", err)
+		}
+	} else if err := HandleVKErrorResult(res, "failed to present queue"); err != nil {
+		return err
+	}
+
+	__current_frame = (__current_frame + 1) % MAX_FRAMES_IN_FLIGHT
 
 	return nil
+}
+
+func Stop() {
+	__running = false
 }

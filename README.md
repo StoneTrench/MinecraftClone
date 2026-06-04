@@ -1,5 +1,7 @@
 # Here's the plan
 
+- [ ] Create pipeline helper functions
+
 - [ ] Configuration at runtime 
 	- [ ] Switch GPU
 	- [ ] GUI scale

@@ -1,7 +1,9 @@
 package rendering
 
 import (
+	"github.com/veandco/go-sdl2/sdl"
 	vk "github.com/vulkan-go/vulkan"
+	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
 )
 
 func initFrameBuffers() error {
@@ -63,23 +65,6 @@ func initCommandPool() error {
 		return err
 	}
 
-	cmdBufInfo := vk.CommandBufferAllocateInfo{
-		SType:              vk.StructureTypeCommandBufferAllocateInfo,
-		PNext:              nil,
-		CommandPool:        __command_pool,
-		Level:              vk.CommandBufferLevelPrimary,
-		CommandBufferCount: 1,
-	}
-
-	cmdBufs := make([]vk.CommandBuffer, 1)
-	__command_buffer = nil
-	res = vk.AllocateCommandBuffers(__logical_device, &cmdBufInfo, cmdBufs)
-	err = HandleVKErrorResult(res, "failed to allocate command buffers")
-	if err != nil {
-		return err
-	}
-	__command_buffer = cmdBufs[0]
-
 	return nil
 }
 func deinitCommandPool() {
@@ -87,6 +72,33 @@ func deinitCommandPool() {
 		fr_LInfo("Deinit command pool")
 		vk.DestroyCommandPool(__logical_device, __command_pool, nil)
 		__command_pool = nil
+	}
+}
+
+func initCommandBuffers() error {
+	fr_LInfo("Init command buffers")
+
+	cmdBufInfo := vk.CommandBufferAllocateInfo{
+		SType:              vk.StructureTypeCommandBufferAllocateInfo,
+		PNext:              nil,
+		CommandPool:        __command_pool,
+		Level:              vk.CommandBufferLevelPrimary,
+		CommandBufferCount: MAX_FRAMES_IN_FLIGHT,
+	}
+
+	__command_buffers = make([]vk.CommandBuffer, MAX_FRAMES_IN_FLIGHT)
+	res := vk.AllocateCommandBuffers(__logical_device, &cmdBufInfo, __command_buffers)
+	err := HandleVKErrorResult(res, "failed to allocate command buffers")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func deinitCommandBuffers() {
+	if __command_buffers != nil {
+		fr_LInfo("Deinit command buffers")
+		__command_buffers = nil
 	}
 }
 
@@ -136,7 +148,9 @@ func recordCommandBuffer(cmdBuf vk.CommandBuffer, imageIndex uint32) error {
 	}
 	vk.CmdSetScissor(cmdBuf, 0, 1, []vk.Rect2D{scissor})
 
-	vk.CmdDraw(cmdBuf, 3, 1, 0, 0)
+	vk.CmdBindVertexBuffers(cmdBuf, 0, 1, []vk.Buffer{__vertex_buffer}, []vk.DeviceSize{0})
+
+	vk.CmdDraw(cmdBuf, uint32(len(VERTICES)), 1, 0, 0)
 
 	vk.CmdEndRenderPass(cmdBuf)
 	res = vk.EndCommandBuffer(cmdBuf)
@@ -150,30 +164,10 @@ func recordCommandBuffer(cmdBuf vk.CommandBuffer, imageIndex uint32) error {
 
 func initSyncObjects() error {
 	fr_LInfo("Init synchronization objects")
-	imgAvailableInfo := vk.SemaphoreCreateInfo{
+	semaphoreInfo := vk.SemaphoreCreateInfo{
 		SType: vk.StructureTypeSemaphoreCreateInfo,
 		PNext: nil,
 		Flags: 0,
-	}
-
-	__sync_semaphore_image_available = nil
-	res := vk.CreateSemaphore(__logical_device, &imgAvailableInfo, nil, &__sync_semaphore_image_available)
-	err := HandleVKErrorResult(res, "failed to create image available semaphore")
-	if err != nil {
-		return err
-	}
-
-	rendFinishInfo := vk.SemaphoreCreateInfo{
-		SType: vk.StructureTypeSemaphoreCreateInfo,
-		PNext: nil,
-		Flags: 0,
-	}
-
-	__sync_semaphore_render_finished = nil
-	res = vk.CreateSemaphore(__logical_device, &rendFinishInfo, nil, &__sync_semaphore_render_finished)
-	err = HandleVKErrorResult(res, "failed to create render finished semaphore")
-	if err != nil {
-		return err
 	}
 
 	fenceInfo := vk.FenceCreateInfo{
@@ -182,27 +176,77 @@ func initSyncObjects() error {
 		Flags: vk.FenceCreateFlags(vk.FenceCreateSignaledBit),
 	}
 
-	__sync_fence_inflight = nil
-	res = vk.CreateFence(__logical_device, &fenceInfo, nil, &__sync_fence_inflight)
-	err = HandleVKErrorResult(res, "failed to create fence")
-	if err != nil {
-		return err
+	__sync_fence_inflights = make([]vk.Fence, MAX_FRAMES_IN_FLIGHT)
+	__sync_semaphore_wait = make([]vk.Semaphore, MAX_FRAMES_IN_FLIGHT)
+	__sync_semaphore_signal = make([]vk.Semaphore, len(__swapchain_images))
+
+	for i := 0; i < MAX_FRAMES_IN_FLIGHT; i++ {
+		res := vk.CreateSemaphore(__logical_device, &semaphoreInfo, nil, &__sync_semaphore_wait[i])
+		err := HandleVKErrorResult(res, "failed to create image available semaphore")
+		if err != nil {
+			return err
+		}
+
+		res = vk.CreateFence(__logical_device, &fenceInfo, nil, &__sync_fence_inflights[i])
+		err = HandleVKErrorResult(res, "failed to create fence")
+		if err != nil {
+			return err
+		}
+	}
+	for i := 0; i < len(__swapchain_images); i++ {
+		res := vk.CreateSemaphore(__logical_device, &semaphoreInfo, nil, &__sync_semaphore_signal[i])
+		err := HandleVKErrorResult(res, "failed to create render finished semaphore")
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 func deinitSyncObjects() {
-	if __sync_fence_inflight != nil {
+	if __sync_fence_inflights != nil || __sync_semaphore_signal != nil || __sync_semaphore_wait != nil {
 		fr_LInfo("Deinit synchronization objects")
-		vk.DestroyFence(__logical_device, __sync_fence_inflight, nil)
-		__sync_fence_inflight = nil
+		for i := 0; i < MAX_FRAMES_IN_FLIGHT; i++ {
+			vk.DestroyFence(__logical_device, __sync_fence_inflights[i], nil)
+			vk.DestroySemaphore(__logical_device, __sync_semaphore_wait[i], nil)
+		}
+		for i := 0; i < len(__swapchain_images); i++ {
+			vk.DestroySemaphore(__logical_device, __sync_semaphore_signal[i], nil)
+		}
+		__sync_fence_inflights = nil
+		__sync_semaphore_wait = nil
+		__sync_semaphore_signal = nil
 	}
-	if __sync_semaphore_render_finished != nil {
-		vk.DestroySemaphore(__logical_device, __sync_semaphore_render_finished, nil)
-		__sync_semaphore_render_finished = nil
+}
+
+func reinitSwapchains() error {
+	fr_LInfo("Reinit swapchain")
+	flags := __window.GetFlags()
+	for flags&sdl.WINDOW_MINIMIZED != 0 {
+		flags = __window.GetFlags()
+		sdl.PollEvent()
 	}
-	if __sync_semaphore_image_available != nil {
-		vk.DestroySemaphore(__logical_device, __sync_semaphore_image_available, nil)
-		__sync_semaphore_image_available = nil
+
+	vk.DeviceWaitIdle(__logical_device)
+
+	deinitFrameBuffers()
+	deinitImageViews()
+	deinitSwapchain()
+
+	err := initSwapchain()
+	if err != nil {
+		return err
 	}
+
+	err = initImageViews()
+	if err != nil {
+		return err
+	}
+
+	err = initFrameBuffers()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

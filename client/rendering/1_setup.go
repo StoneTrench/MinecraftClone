@@ -2,8 +2,11 @@ package rendering
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
-	shared "github.com/StoneTrench/go-mc-clone/shared"
+	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
+	game "github.com/StoneTrench/go-mc-clone/game"
 	"github.com/veandco/go-sdl2/sdl"
 	vk "github.com/vulkan-go/vulkan"
 )
@@ -23,7 +26,7 @@ func initWindow(width, height uint32) (err error) {
 
 	fr_LInfo("Init window")
 	__window, err = sdl.CreateWindow(
-		fmt.Sprintf("%s  —  v%d.%d.%d", shared.PROJECT_NAME, shared.PROJECT_VERSION_MAJOR, shared.PROJECT_VERSION_MINOR, shared.PROJECT_VERSION_PATCH),
+		game.GetFormattedApplicationLabel(),
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
 		int32(width), int32(height),
 		sdl.WINDOW_VULKAN|sdl.WINDOW_RESIZABLE,
@@ -66,14 +69,25 @@ func deinitVulkan() {
 	// nothing
 }
 
+func makeVersion() uint32 {
+	tag := strings.TrimPrefix(game.PROJECT_TAG, "v")
+	parts := strings.Split(tag, ".")
+	if len(parts) < 3 {
+		return 0
+	}
+	major, _ := strconv.Atoi(parts[0])
+	minor, _ := strconv.Atoi(parts[1])
+	patch, _ := strconv.Atoi(parts[2])
+	return vk.MakeVersion(major, minor, patch)
+}
 func initVkInstance() error {
 	fr_LInfo("Init vulkan instance")
 
 	application_info := vk.ApplicationInfo{
 		SType:              vk.StructureTypeApplicationInfo,
 		PNext:              nil,
-		PApplicationName:   shared.PROJECT_NAME + "\x00",
-		ApplicationVersion: vk.MakeVersion(shared.PROJECT_VERSION_MAJOR, shared.PROJECT_VERSION_MINOR, shared.PROJECT_VERSION_PATCH),
+		PApplicationName:   game.PROJECT_NAME + "\x00",
+		ApplicationVersion: makeVersion(),
 		PEngineName:        "No Engine\x00",
 		EngineVersion:      vk.MakeVersion(1, 0, 0),
 		ApiVersion:         vk.ApiVersion11,
