@@ -18,6 +18,8 @@ for file in assets/shaders/*.slang; do
         -o "_out/assets/shaders/${filename}.spv"
 done
 
+cp -rf assets/textures/ _out/assets/textures/
+
 for file in include/*; do
     filename=$(basename "$file")
 		cp $file ./_out/$filename

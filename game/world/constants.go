@@ -16,7 +16,7 @@ const OBJECT_VOXEL_SIZE = 0.5
 const OBJECT_CHUNK_SIZE = CHUNK_SIZE * OBJECT_VOXEL_SIZE
 
 // WorldToChunk converts a world coordinate.
-func WorldToChunk[T Integer](pos Vector3[T]) (chunk Vector3[T]) {
+func WorldToChunk[int32 Integer](pos Vector3[int32]) (chunk Vector3[int32]) {
 	chunk.X = pos.X >> CHUNK_SIZE_EXP
 	chunk.Y = pos.Y >> CHUNK_SIZE_EXP
 	chunk.Z = pos.Z >> CHUNK_SIZE_EXP
@@ -24,7 +24,7 @@ func WorldToChunk[T Integer](pos Vector3[T]) (chunk Vector3[T]) {
 }
 
 // WorldToLocal finds the position inside the chunk.
-func WorldToLocal[T Integer](pos Vector3[T]) (local Vector3[T]) {
+func WorldToLocal[int32 Integer](pos Vector3[int32]) (local Vector3[int32]) {
 	local.X = pos.X & CHUNK_SIZE_MASK
 	local.Y = pos.Y & CHUNK_SIZE_MASK
 	local.Z = pos.Z & CHUNK_SIZE_MASK
@@ -32,12 +32,12 @@ func WorldToLocal[T Integer](pos Vector3[T]) (local Vector3[T]) {
 }
 
 // LocalToIndex converts local coordinates into a single integer to index into the block array in a chunk.
-func LocalToIndex[T int | int16 | int32 | int64 | uint | uint16 | uint32 | uint64](local Vector3[T]) (index T) {
+func LocalToIndex(local Vector3[int32]) (index int32) {
 	return local.X + local.Y*CHUNK_SIZE + local.Z*CHUNK_LAYER_AREA
 }
 
 // IndexToLocal converts index into local coordinates in a chunk.
-func IndexToLocal[T int | int16 | int32 | int64 | uint | uint16 | uint32 | uint64](index T) (local Vector3[T]) {
+func IndexToLocal(index int32) (local Vector3[int32]) {
 	local.X = index % CHUNK_SIZE
 	local.Y = (index / CHUNK_SIZE) % CHUNK_SIZE
 	local.Z = index / CHUNK_LAYER_AREA

@@ -8,4 +8,9 @@ require (
 	github.com/vulkan-go/vulkan v0.0.0-20221209234627-c0a353ae26c8
 )
 
+require (
+	github.com/tetratelabs/wazero v1.12.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+)
+
 replace github.com/StoneTrench/go-mat-lib => ../GoMatLib

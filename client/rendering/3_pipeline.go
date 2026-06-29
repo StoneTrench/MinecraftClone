@@ -80,9 +80,9 @@ func deinitRenderPass() {
 }
 
 func createShaderModule(name string) (vk.ShaderModule, error) {
-	codeBytes, err := readShaderFile(name)
+	codeBytes, err := os.ReadFile(name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read file, %w", err)
 	}
 
 	if len(codeBytes)%4 != 0 {
@@ -117,13 +117,6 @@ func createShaderModule(name string) (vk.ShaderModule, error) {
 	}
 
 	return module, nil
-}
-func readShaderFile(name string) ([]byte, error) {
-	result, err := os.ReadFile(name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read shader, %w", err)
-	}
-	return result, nil
 }
 
 func initPipeline_ShaderStages() ([]vk.PipelineShaderStageCreateInfo, error) {
@@ -167,8 +160,8 @@ func initPipeline_PipelineLayout() error {
 		SType:                  vk.StructureTypePipelineLayoutCreateInfo,
 		PNext:                  nil,
 		Flags:                  0,
-		SetLayoutCount:         0,
-		PSetLayouts:            nil,
+		SetLayoutCount:         1,
+		PSetLayouts:            []vk.DescriptorSetLayout{__descriptor_set_layout},
 		PushConstantRangeCount: 0,
 		PPushConstantRanges:    nil,
 	}
@@ -249,7 +242,7 @@ func initPipeline_RasterizerState() vk.PipelineRasterizationStateCreateInfo {
 		RasterizerDiscardEnable: vk.False,
 		PolygonMode:             vk.PolygonModeFill,
 		CullMode:                vk.CullModeFlags(vk.CullModeBackBit),
-		FrontFace:               vk.FrontFaceClockwise,
+		FrontFace:               vk.FrontFaceCounterClockwise,
 		LineWidth:               1,
 
 		DepthBiasEnable:         vk.False,

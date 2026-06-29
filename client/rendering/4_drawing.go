@@ -1,9 +1,9 @@
 package rendering
 
 import (
+	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
 	"github.com/veandco/go-sdl2/sdl"
 	vk "github.com/vulkan-go/vulkan"
-	. "github.com/StoneTrench/go-mc-clone/client/rendering/helpers"
 )
 
 func initFrameBuffers() error {
@@ -149,8 +149,11 @@ func recordCommandBuffer(cmdBuf vk.CommandBuffer, imageIndex uint32) error {
 	vk.CmdSetScissor(cmdBuf, 0, 1, []vk.Rect2D{scissor})
 
 	vk.CmdBindVertexBuffers(cmdBuf, 0, 1, []vk.Buffer{__vertex_buffer}, []vk.DeviceSize{0})
+	vk.CmdBindIndexBuffer(cmdBuf, __index_buffer, 0, vk.IndexTypeUint16)
 
-	vk.CmdDraw(cmdBuf, uint32(len(VERTICES)), 1, 0, 0)
+	vk.CmdBindDescriptorSets(cmdBuf, vk.PipelineBindPointGraphics, __pipeline_layout, 0, 1, []vk.DescriptorSet{__descriptor_sets[__current_frame]}, 0, nil)
+
+	vk.CmdDrawIndexed(cmdBuf, uint32(len(INDICES)), 1, 0, 0, 0)
 
 	vk.CmdEndRenderPass(cmdBuf)
 	res = vk.EndCommandBuffer(cmdBuf)

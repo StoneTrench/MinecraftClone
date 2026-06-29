@@ -3,6 +3,7 @@ package rendering
 
 import (
 	"fmt"
+	"unsafe"
 
 	game "github.com/StoneTrench/go-mc-clone/game"
 	"github.com/veandco/go-sdl2/sdl"
@@ -42,6 +43,8 @@ var (
 
 	__render_pass vk.RenderPass
 
+	__descriptor_set_layout vk.DescriptorSetLayout
+
 	__pipeline_shader_module vk.ShaderModule
 	__pipeline_layout        vk.PipelineLayout
 	__pipeline               vk.Pipeline
@@ -51,8 +54,16 @@ var (
 
 	__command_pool vk.CommandPool
 
-	__vertex_buffer        vk.Buffer
-	__vertex_buffer_memory vk.DeviceMemory
+	__vertex_buffer         vk.Buffer
+	__vertex_buffer_memory  vk.DeviceMemory
+	__index_buffer          vk.Buffer
+	__index_buffer_memory   vk.DeviceMemory
+	__uniform_buffer        []vk.Buffer
+	__uniform_buffer_memory []vk.DeviceMemory
+	__uniform_buffer_mapped []unsafe.Pointer
+
+	__descriptor_pool vk.DescriptorPool
+	__descriptor_sets []vk.DescriptorSet
 
 	__command_buffers []vk.CommandBuffer
 
@@ -61,6 +72,9 @@ var (
 	__sync_fence_inflights      []vk.Fence
 	__current_frame             int
 	__force_frame_buffer_reinit bool
+
+	__texture_image        vk.Image
+	__texture_image_memory vk.DeviceMemory
 )
 
 func Init() (err error) {
@@ -116,6 +130,11 @@ func Init() (err error) {
 		return fmt.Errorf("failed to init render pass, %w", err)
 	}
 
+	err = initDescriptorSetLayout()
+	if err != nil {
+		return fmt.Errorf("failed to init descriptor set layout, %w", err)
+	}
+
 	err = initPipeline()
 	if err != nil {
 		return fmt.Errorf("failed to init vulkan pipeline, %w", err)
@@ -134,6 +153,26 @@ func Init() (err error) {
 	err = initVertexBuffer()
 	if err != nil {
 		return fmt.Errorf("failed to init vertex buffer, %w", err)
+	}
+
+	err = initIndexBuffer()
+	if err != nil {
+		return fmt.Errorf("failed to init index buffer, %w", err)
+	}
+
+	err = initUniformBuffer()
+	if err != nil {
+		return fmt.Errorf("failed to init uniform buffer, %w", err)
+	}
+
+	err = initDescriptorPool()
+	if err != nil {
+		return fmt.Errorf("failed to init descriptor pool, %w", err)
+	}
+
+	err = initDescriptorSets()
+	if err != nil {
+		return fmt.Errorf("failed to init descriptor sets, %w", err)
 	}
 
 	err = initCommandBuffers()
@@ -156,11 +195,18 @@ func Deinit() {
 	__running = false
 	deinitSyncObjects()
 	deinitCommandBuffers()
+
+	deinitDescriptorSets()
+	deinitDescriptorPool()
+	deinitUniformBuffer()
+	deinitIndexBuffer()
 	deinitVertexBuffer()
+
 	deinitCommandPool()
 	deinitFrameBuffers()
 
 	deinitPipeline()
+	deinitDescriptorSetLayout()
 	deinitRenderPass()
 
 	deinitImageViews()
@@ -199,7 +245,7 @@ func PollEvents() {
 		}
 	}
 }
-func DrawFrames() error {
+func DrawFrames(time_current, time_delta float64) error {
 	res := vk.WaitForFences(__logical_device, 1, []vk.Fence{__sync_fence_inflights[__current_frame]}, vk.True, vk.MaxUint64)
 	if err := HandleVKErrorResult(res, "failed to wait for fences"); err != nil {
 		return err
@@ -231,6 +277,8 @@ func DrawFrames() error {
 	if err != nil {
 		return err
 	}
+
+	updateUniformBuffer(__current_frame, time_current, time_delta)
 
 	wait_semaphores := []vk.Semaphore{__sync_semaphore_wait[__current_frame]}
 	signal_semaphores := []vk.Semaphore{__sync_semaphore_signal[imageIndex]}

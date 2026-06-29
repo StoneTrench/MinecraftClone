@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/StoneTrench/go-mc-clone/client"
 	. "github.com/StoneTrench/go-mc-clone/game"
-	"github.com/StoneTrench/go-mc-clone/game/lua"
+	// "github.com/StoneTrench/go-mc-clone/game/lua"
 )
 
 func main() {
@@ -15,13 +15,13 @@ func main() {
 
 	LInfo(GetFormattedApplicationLabel())
 
-	l := lua.State{}.Init()
-	defer l.Deinit()
+	// l := lua.State{}.Init()
+	// defer l.Deinit()
 
-	err = l.DoString("print('Hello from lua! :3')")
-	if err != nil {
-		panic(err)
-	}
+	// err = l.DoString("print('Hello from lua! :3')")
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	err = client.Init()
 	if err != nil {

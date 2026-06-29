@@ -2,6 +2,8 @@
 package client
 
 import (
+	"time"
+
 	fw "github.com/StoneTrench/go-mc-clone/client/rendering"
 	// util "github.com/StoneTrench/go-mc-clone/shared"
 )
@@ -13,13 +15,22 @@ func Init() error {
 		return err
 	}
 
+	var time_current float64 = 0
+	lastTime := time.Now()
+
 	for fw.IsRunning() {
 		fw.PollEvents()
 
-		err = fw.DrawFrames()
+		now := time.Now()
+		time_delta := now.Sub(lastTime).Seconds()
+		lastTime = now
+
+		err = fw.DrawFrames(time_current, time_delta)
 		if err != nil {
 			return err
 		}
+
+		time_current += time_delta
 	}
 
 	fw.Deinit()
