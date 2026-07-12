@@ -2,37 +2,18 @@
 package client
 
 import (
-	"time"
+	rl "github.com/gen2brain/raylib-go/raylib"
 
-	fw "github.com/StoneTrench/go-mc-clone/client/rendering"
-	// util "github.com/StoneTrench/go-mc-clone/shared"
+	game "github.com/StoneTrench/go-mc-clone/game"
 )
 
 func Init() error {
-	var err error = nil
-	err = fw.Init()
-	if err != nil {
-		return err
+	rl.InitWindow(800, 600, game.GetFormattedApplicationLabel())
+
+	for !rl.WindowShouldClose() {
+
 	}
 
-	var time_current float64 = 0
-	lastTime := time.Now()
-
-	for fw.IsRunning() {
-		fw.PollEvents()
-
-		now := time.Now()
-		time_delta := now.Sub(lastTime).Seconds()
-		lastTime = now
-
-		err = fw.DrawFrames(time_current, time_delta)
-		if err != nil {
-			return err
-		}
-
-		time_current += time_delta
-	}
-
-	fw.Deinit()
+	rl.CloseWindow()
 	return nil
 }

@@ -1,7 +1,7 @@
 package world
 
 import (
-	. "github.com/StoneTrench/go-mat-lib"
+	. "github.com/StoneTrench/go-mat-lib/vec"
 )
 
 const CHUNK_SIZE_EXP = 5
@@ -16,7 +16,7 @@ const OBJECT_VOXEL_SIZE = 0.5
 const OBJECT_CHUNK_SIZE = CHUNK_SIZE * OBJECT_VOXEL_SIZE
 
 // WorldToChunk converts a world coordinate.
-func WorldToChunk[int32 Integer](pos Vector3[int32]) (chunk Vector3[int32]) {
+func WorldToChunk(pos Vector3[int32]) (chunk Vector3[int32]) {
 	chunk.X = pos.X >> CHUNK_SIZE_EXP
 	chunk.Y = pos.Y >> CHUNK_SIZE_EXP
 	chunk.Z = pos.Z >> CHUNK_SIZE_EXP
@@ -24,7 +24,7 @@ func WorldToChunk[int32 Integer](pos Vector3[int32]) (chunk Vector3[int32]) {
 }
 
 // WorldToLocal finds the position inside the chunk.
-func WorldToLocal[int32 Integer](pos Vector3[int32]) (local Vector3[int32]) {
+func WorldToLocal(pos Vector3[int32]) (local Vector3[int32]) {
 	local.X = pos.X & CHUNK_SIZE_MASK
 	local.Y = pos.Y & CHUNK_SIZE_MASK
 	local.Z = pos.Z & CHUNK_SIZE_MASK

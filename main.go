@@ -3,17 +3,23 @@ package main
 import (
 	"github.com/StoneTrench/go-mc-clone/client"
 	. "github.com/StoneTrench/go-mc-clone/game"
+	"github.com/Tnze/go-mc/level"
 	// "github.com/StoneTrench/go-mc-clone/game/lua"
 )
 
 func main() {
-	var err error = nil
-	err = InitLogging("logs", "latest")
-	if err != nil {
-		panic(err)
-	}
 
-	LInfo(GetFormattedApplicationLabel())
+	
+
+	client.GenerateChunkMesh()
+
+	// var err error = nil
+	// err = InitLogging("logs", "latest")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// LInfo(GetFormattedApplicationLabel())
 
 	// l := lua.State{}.Init()
 	// defer l.Deinit()
@@ -23,8 +29,8 @@ func main() {
 	// 	panic(err)
 	// }
 
-	err = client.Init()
-	if err != nil {
-		panic(err)
-	}
+	// err = client.Init()
+	// if err != nil {
+	// 	panic(err)
+	// }
 }

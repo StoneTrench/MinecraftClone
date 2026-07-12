@@ -3,7 +3,7 @@ package world
 import (
 	"errors"
 
-	. "github.com/StoneTrench/go-mat-lib"
+	. "github.com/StoneTrench/go-mat-lib/vec"
 )
 
 type BlockId uint16
