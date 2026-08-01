@@ -2,6 +2,9 @@ package metadata
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type ENGINE_MODE uint8
@@ -22,8 +25,8 @@ var (
 var (
 	internal_is_initialized bool = false
 	internal_name           string
-	internal_tag            string
-	internal_built          string
+	internal_tag            *semver.Version
+	internal_built          time.Time
 	internal_commit         string
 	internal_mode           ENGINE_MODE
 )
@@ -49,9 +52,13 @@ func Init() error {
 	}
 
 	internal_name = BUILD_NAME
-	internal_tag = BUILD_TAG
+	internal_tag = semver.MustParse(BUILD_TAG)
 	internal_commit = BUILD_COMMIT
-	internal_built = BUILD_BUILT
+	var err error
+	internal_built, err = time.Parse(time.DateTime, BUILD_BUILT)
+	if err != nil {
+		return fmt.Errorf("failed to parse build time, %w", err)
+	}
 	switch BUILD_MODE {
 	case "RELEASE":
 		internal_mode = MODE_RELEASE
@@ -80,7 +87,7 @@ func GetFormattedApplicationLabel() string {
 	if IsInDebugMode() {
 		suffix = " [DEBUG]"
 	}
-	return fmt.Sprintf("%s  —  (%s) %s %s%s", internal_name, internal_tag, internal_built, internal_commit, suffix)
+	return fmt.Sprintf("%s  —  (%s) %s %s%s", internal_name, internal_tag, internal_built.Format(time.DateTime), internal_commit, suffix)
 }
 
 func IsInDebugMode() bool {

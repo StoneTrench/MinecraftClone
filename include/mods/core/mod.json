@@ -1,0 +1,12 @@
+{
+	"name": "core",
+	"version": "v1.0.0",
+	"description": "The primary content of this game.",
+	"author": "StoneTrench",
+
+	"api_version": "*",
+	"dependencies": {},
+	"incompatibilities": {},
+
+	"environment": {}
+}

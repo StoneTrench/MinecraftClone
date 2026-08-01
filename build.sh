@@ -1,13 +1,7 @@
 #!/bin/bash
 set -e
 
-
-# sh build_mod.sh
-# sh build_assets.sh
-
-cd ./_out/mods/test/
-GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o main.wasm main.go
-cd ../../../
+sh build_assets.sh
 
 PROJECT_NAME="Stone's MC Clone"
 

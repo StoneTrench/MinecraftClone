@@ -55,7 +55,7 @@ func Init() error {
 		log.Error(err)
 	}
 	RegistryBlocks.Freeze()
-	RegistryBlocks.ApplyIdMap([]string{"test:air", "test:stone", "test:grass", "test:test"})
+	RegistryBlocks.ApplyIdMap([]string{"test:air", "test:stone", "test:grass"})
 
 	return nil
 }

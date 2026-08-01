@@ -16,6 +16,14 @@ Ship and Active level mean the same thing.
 	- [ ] Physics happens at a fixed `delta_time`.
 
 ## Modding
++ [x] Load mod headers
++ [x] Sort based on dependencies
++ [x] Skip mods with missing dependencies, and collect errors
++ [ ] Load mod assets
++ [x] Load mod program
++ [?] Load api for mod
++ [ ] Call initializer functions (to define registry entries, callbacks, systems)
+
 - [ ] World generation happens in phases, where each phase only has access to the previous phase data in itself and neighbouring chunks.
 	- [ ] World generation doesn't read data from the actual world, but either from a world generation cache, or a it regenerates the data for the neighbours.
 	- [ ] This is so that multiple chunks can be generated in parallel, without them having to share data (except for maybe read from a cache, but only read from it)

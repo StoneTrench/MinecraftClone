@@ -12,7 +12,6 @@ import (
 	"github.com/StoneTrench/go-mc-clone/game/log"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 type ModHeader struct {
@@ -104,15 +103,10 @@ func (m *Mod) LoadGuestModule(ctx context.Context) error {
 	}
 
 	r := wazero.NewRuntime(ctx)
-	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 	m.Runtime = r
 
 	// Load api
-	err = load_api_log(ctx, r)
-	if err != nil {
-		return fmt.Errorf("failed to load (%s), %w", m.String(), err)
-	}
-	err = load_api_register(ctx, r)
+	err = load_api(ctx, r, m)
 	if err != nil {
 		return fmt.Errorf("failed to load (%s), %w", m.String(), err)
 	}
