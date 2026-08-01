@@ -1,4 +1,4 @@
-package game
+package log
 
 import (
 	"compress/gzip"
@@ -6,61 +6,54 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"runtime"
 	"time"
+
+	"github.com/StoneTrench/go-mc-clone/metadata"
 )
 
 // Helper function for log file management.
 func compressAndRemove(srcPath, dstPath string) error {
 	srcFile, err := os.Open(srcPath)
 	if err != nil {
-		return ErrConcat("failed to open old file", err)
+		return fmt.Errorf("failed to open old file, %w", err)
 	}
+	defer srcFile.Close()
 
 	dstFile, err := os.Create(dstPath)
 	if err != nil {
-		return ErrConcat("failed to create new file", err)
+		return fmt.Errorf("failed to create new file, %w", err)
 	}
 	defer dstFile.Close()
 
 	gw := gzip.NewWriter(dstFile)
 	if _, err := io.Copy(gw, srcFile); err != nil {
-		return ErrConcat("failed to compress old file", err)
+		return fmt.Errorf("failed to compress old file, %w", err)
 	}
 	defer gw.Close()
 	srcFile.Close()
 
 	if err := os.Remove(srcPath); err != nil {
-		return ErrConcat("failed to remove old file", err)
+		return fmt.Errorf("failed to remove old file, %w", err)
 	}
 
 	return nil
 }
 
-// ErrConcat concatenates an error and a string message into a new error.
-func ErrConcat(msg string, errs error) error {
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		return fmt.Errorf("%s: %w", msg, errs)
-	}
-	// Formats as: "failed to initialize... (main.go:42): original error"
-	return fmt.Errorf("%s (%s:%d): %w", msg, file, line, errs)
-}
-
-// InitLogging initializes the main logger.
+// Init initializes the main logger.
 // Should be called once at startup.
-func InitLogging(logDir, latestLogName string) error {
+func Init(logDir, latestLogName string) error {
 	latestPath := logDir + "/" + latestLogName + ".log"
 
 	// Ignore the mkdir error intentionally
 	os.MkdirAll(logDir, 0755)
 
+	var old_log_error error = nil
 	// Check if latest exists, if yes move it
 	if _, err := os.Stat(latestPath); err == nil {
 		archiveName := fmt.Sprintf("%s/log-%s.log.gz", logDir, time.Now().Format("2006-01-02-150405"))
 
 		if err := compressAndRemove(latestPath, archiveName); err != nil {
-			fmt.Printf("Warning: failed to archive old log: %v\n", err)
+			old_log_error = fmt.Errorf("failed to archive old log, %v", err)
 		}
 	}
 
@@ -70,29 +63,41 @@ func InitLogging(logDir, latestLogName string) error {
 		return fmt.Errorf("failed to open log file: %v", err)
 	}
 
-	handler := slog.NewJSONHandler(io.MultiWriter(os.Stdout, file), &slog.HandlerOptions{Level: slog.LevelDebug})
+	handler := NewBracketHandler(io.MultiWriter(os.Stdout, file))
 	slog.SetDefault(slog.New(handler))
+
+	if old_log_error != nil {
+		slog.Warn(old_log_error.Error())
+	}
+
 	return nil
 }
 
-// LInfo is shorthand for
+// Info is shorthand for
 //
 //	slog.Info(msg, args...)
-func LInfo(msg string, args ...any) {
+func Info(msg string, args ...any) {
 	slog.Info(msg, args...)
 }
 
-// LWarn is shorthand for
+// Infof is shorthand for
+//
+//	slog.Info(fmt.Sprintf(format, s...))
+func Infof(format string, s ...any) {
+	slog.Info(fmt.Sprintf(format, s...))
+}
+
+// Warn is shorthand for
 //
 //	slog.Warn(msg, args...)
-func LWarn(msg string, args ...any) {
+func Warn(msg string, args ...any) {
 	slog.Warn(msg, args...)
 }
 
-// LError is shorthand for
+// Error is shorthand for
 //
 //	slog.Error(msg, args...)
-func LError(err any, args ...any) {
+func Error(err any, args ...any) {
 	switch t := err.(type) {
 	case error:
 		slog.Error(t.Error(), args...)
@@ -103,11 +108,25 @@ func LError(err any, args ...any) {
 	}
 }
 
-// LPanic is shorthand for
+// Panic is shorthand for
 //
 //	slog.Error(err, args...)
 //	panic(err)
-func LPanic(err any, args ...any) {
-	LError(err)
+func Panic(err any, args ...any) {
+	Error(err)
 	panic(err)
+}
+
+// Assert is LogError, but with a condition.
+func Assert(cond bool, err any, args ...any) {
+	if !cond && metadata.IsInDebugMode() {
+		switch t := err.(type) {
+		case error:
+			slog.Error(t.Error(), args...)
+		case string:
+			slog.Error(t, args...)
+		default:
+			slog.Error(fmt.Sprint(t), args...)
+		}
+	}
 }

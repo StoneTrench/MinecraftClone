@@ -15,8 +15,11 @@ require (
 )
 
 require (
+	github.com/Masterminds/semver/v3 v3.5.0
+	github.com/blang/semver/v4 v4.0.0
 	github.com/gen2brain/raylib-go/raylib v0.60.0
 	github.com/tetratelabs/wazero v1.12.0 // indirect
+	golang.org/x/mod v0.38.0
 	golang.org/x/sys v0.44.0 // indirect
 )
 

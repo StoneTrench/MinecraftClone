@@ -15,11 +15,19 @@ const CHUNK_VOLUME = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE
 const OBJECT_VOXEL_SIZE = 0.5
 const OBJECT_CHUNK_SIZE = CHUNK_SIZE * OBJECT_VOXEL_SIZE
 
-// WorldToChunk converts a world coordinate.
+// WorldToChunk finds which chunk the position is in.
 func WorldToChunk(pos Vector3[int32]) (chunk Vector3[int32]) {
 	chunk.X = pos.X >> CHUNK_SIZE_EXP
 	chunk.Y = pos.Y >> CHUNK_SIZE_EXP
 	chunk.Z = pos.Z >> CHUNK_SIZE_EXP
+	return chunk
+}
+
+// WorldToChunk finds the origin of the chunk in the world.
+func ChunkToWorld(pos Vector3[int32]) (chunk Vector3[int32]) {
+	chunk.X = pos.X << CHUNK_SIZE_EXP
+	chunk.Y = pos.Y << CHUNK_SIZE_EXP
+	chunk.Z = pos.Z << CHUNK_SIZE_EXP
 	return chunk
 }
 
@@ -43,3 +51,22 @@ func IndexToLocal(index int32) (local Vector3[int32]) {
 	local.Z = index / CHUNK_LAYER_AREA
 	return local
 }
+
+var NEIGHBOURS = [6][3]int32{
+	{0, 0, 1},  // back
+	{0, 0, -1}, // front
+	{0, 1, 0},  // top
+	{0, -1, 0}, // bottom
+	{-1, 0, 0}, // left
+	{1, 0, 0},  // right
+}
+
+// func IterateNeighbours() iter.Seq[Vector3[int32]] {
+// 	return func(yield func(Vector3[int32]) bool) {
+// 		for i := range 6 {
+// 			if !yield(InitVector3(NEIGHBOURS[i][0], NEIGHBOURS[i][1], NEIGHBOURS[i][2])) {
+// 				return
+// 			}
+// 		}
+// 	}
+// }
