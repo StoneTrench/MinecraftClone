@@ -9,14 +9,24 @@ import (
 	"time"
 )
 
+// https://github.com/golang/example/blob/master/slog-handler-guide/README.md#the-withgroup-method
+
 type BracketHandler struct {
-	w  io.Writer
-	mu sync.Mutex
-	a  []slog.Attr
+	out  io.Writer
+	mu   *sync.Mutex
+	goas []groupOrAttrs
+}
+
+type groupOrAttrs struct {
+	group string
+	attrs []slog.Attr
 }
 
 func NewBracketHandler(w io.Writer) *BracketHandler {
-	return &BracketHandler{w: w}
+	return &BracketHandler{
+		out: w,
+		mu:  &sync.Mutex{},
+	}
 }
 
 func (h *BracketHandler) Enabled(_ context.Context, l slog.Level) bool {
@@ -41,17 +51,22 @@ func (h *BracketHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	line := fmt.Sprintf("[%s] [%s] %s\n", t, lvl, msg)
-	_, err := h.w.Write([]byte(line))
+	_, err := h.out.Write([]byte(line))
 	return err
 }
 
+func (h *BracketHandler) withGroupOrAttrs(goa groupOrAttrs) *BracketHandler {
+	h2 := *h
+	h2.goas = make([]groupOrAttrs, len(h.goas)+1)
+	copy(h2.goas, h.goas)
+	h2.goas[len(h2.goas)-1] = goa
+	return &h2
+}
+
 func (h *BracketHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	newAttrs := make([]slog.Attr, len(h.a)+len(attrs))
-	copy(newAttrs, h.a)
-	copy(newAttrs[len(h.a):], attrs)
-	return &BracketHandler{w: h.w, a: newAttrs}
+	return h.withGroupOrAttrs(groupOrAttrs{attrs: attrs})
 }
 
 func (h *BracketHandler) WithGroup(name string) slog.Handler {
-	return h
+	return h.withGroupOrAttrs(groupOrAttrs{group: name})
 }

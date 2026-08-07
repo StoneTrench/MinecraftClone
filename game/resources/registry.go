@@ -136,7 +136,7 @@ func (r *Registry[T, I]) ApplyIdMap(m []string) (new_map []string, err error) {
 	}
 
 	if len(missing) > 0 {
-		log.Warn(r.Errorf("missing registry entries when loading id map: %v", missing).Error())
+		log.Warnf("missing registry entries when loading id map: %v", missing)
 	}
 
 	// log.Assert(m_len == len(r.id2ident_arr), "registry: m_len and id2ident_arr should be equal")

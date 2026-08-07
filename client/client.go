@@ -20,11 +20,11 @@ func raylib_trace_log_callback(level int, msg string) {
 	case rl.LogInfo:
 		log.Info(msg)
 	case rl.LogWarning:
-		log.Warn(msg)
+		log.WarnStr(msg)
 	case rl.LogError:
-		log.Error(msg)
+		log.ErrorStr(msg)
 	case rl.LogFatal:
-		log.Panic(msg)
+		log.ErrorStr(msg)
 	default:
 		log.Info(fmt.Sprintf("(Unknown TraceLogLevel) %s", msg))
 	}

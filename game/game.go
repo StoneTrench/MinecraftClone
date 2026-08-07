@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/StoneTrench/go-mc-clone/game/events"
@@ -16,14 +17,14 @@ var EventBusNetwork = events.CreateEventBus()
 
 func Init() error {
 	var err error = nil
-	err = metadata.Init()
+	err = log.Init(false)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize logging, %w", err)
 	}
 
-	err = log.Init("logs", "latest")
+	err = metadata.Init()
 	if err != nil {
-		return err
+		log.Errorf("failed to initialize metadata, %w", err)
 	}
 
 	err = resources.LangAppendFallback("assets/lang/en-us.json")

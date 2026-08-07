@@ -22,7 +22,7 @@ type ModHeader struct {
 
 	Homepage string `json:"homepage"`
 
-	ApiVersion        string            `json:"api_version"`
+	ApiVersion        int               `json:"api_version"`
 	Dependencies      map[string]string `json:"dependencies"`
 	Incompatibilities map[string]string `json:"incompatibilities"`
 
@@ -30,9 +30,8 @@ type ModHeader struct {
 }
 
 type Mod struct {
-	Folder     string
-	Version    semver.Version
-	ApiVersion semver.Constraints
+	Folder  string
+	Version semver.Version
 
 	Dependencies map[string]semver.Constraints
 
@@ -41,6 +40,13 @@ type Mod struct {
 	Config  map[string]string
 	Runtime wazero.Runtime
 	Module  api.Module
+}
+
+func (m *Mod) IsApiVersionValid() error {
+	if m.Header.ApiVersion < API_VERSION {
+		return fmt.Errorf("API version of engine and mod do not match (%d != %d)", API_VERSION, m.Header.ApiVersion)
+	}
+	return nil
 }
 
 func (m *Mod) Init(folder string) *Mod {
@@ -74,12 +80,6 @@ func (m *Mod) LoadHeader() error {
 	}
 	m.Version = *vers
 
-	api_vers, err := semver.NewConstraint(head.ApiVersion)
-	if err != nil {
-		return fmt.Errorf("failed to parse mod api version constraint, %w", err)
-	}
-	m.ApiVersion = *api_vers
-
 	m.Dependencies = make(map[string]semver.Constraints)
 	for k, v := range head.Dependencies {
 		vers, err := semver.NewConstraint(v)
@@ -92,8 +92,9 @@ func (m *Mod) LoadHeader() error {
 	return nil
 }
 func (m *Mod) LoadGuestModule(ctx context.Context) error {
-	if !m.ApiVersion.Check(API_VERSION) {
-		log.Warn(fmt.Sprintf("API version of engine ang mod do not match (%s != %s)", API_VERSION.String(), m.ApiVersion.String()))
+	err := m.IsApiVersionValid()
+	if err != nil {
+		log.Warn(err)
 	}
 
 	log.Infof("Loading wasm module for (%s)", m.String())
@@ -281,7 +282,7 @@ func LoadMods(ctx context.Context) ([]Mod, error) {
 }
 
 func Init() error {
-	log.Infof("Init wasm (api %s)", API_VERSION.String())
+	log.Infof("Init wasm (api %d)", API_VERSION)
 	ctx := context.Background()
 
 	_, err := LoadMods(ctx)

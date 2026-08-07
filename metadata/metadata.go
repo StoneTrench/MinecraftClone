@@ -20,6 +20,7 @@ var (
 	BUILD_BUILT  string = "" // Do not read from these!
 	BUILD_COMMIT string = "" // Do not read from these!
 	BUILD_MODE   string = "" // Do not read from these!
+	BUILD_TARGET string = "" // Do not read from these!
 )
 
 var (
@@ -29,6 +30,7 @@ var (
 	internal_built          time.Time
 	internal_commit         string
 	internal_mode           ENGINE_MODE
+	internal_target         string
 )
 
 func Init() error {
@@ -67,12 +69,14 @@ func Init() error {
 	default:
 		return fmt.Errorf("invalid engine mode: %s", BUILD_MODE)
 	}
+	internal_target = BUILD_TARGET
 
 	BUILD_NAME = ""
 	BUILD_TAG = ""
 	BUILD_COMMIT = ""
 	BUILD_BUILT = ""
 	BUILD_MODE = ""
+	BUILD_TARGET = ""
 
 	internal_is_initialized = true
 	return nil
@@ -87,7 +91,13 @@ func GetFormattedApplicationLabel() string {
 	if IsInDebugMode() {
 		suffix = " [DEBUG]"
 	}
-	return fmt.Sprintf("%s  —  (%s) %s %s%s", internal_name, internal_tag, internal_built.Format(time.DateTime), internal_commit, suffix)
+	return fmt.Sprintf("%s & v%s -o- %s (%s)%s",
+		internal_name,
+		internal_tag,
+		internal_commit,
+		internal_built.Format(time.DateTime),
+		suffix,
+	)
 }
 
 func IsInDebugMode() bool {

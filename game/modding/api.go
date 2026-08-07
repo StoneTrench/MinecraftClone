@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/StoneTrench/go-mc-clone/game/log"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
-var API_VERSION = semver.MustParse("0.0.0")
+const API_VERSION = 0
 
 func load_api(ctx context.Context, r wazero.Runtime, mod *Mod) error {
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
@@ -30,7 +29,7 @@ func load_api(ctx context.Context, r wazero.Runtime, mod *Mod) error {
 		Export("log").
 		NewFunctionBuilder().
 		WithFunc(func() uint64 {
-			return API_VERSION.Major()
+			return uint64(API_VERSION)
 		}).
 		Export("api_version").
 		Instantiate(ctx)

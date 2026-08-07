@@ -16,8 +16,6 @@ type ECS struct {
 	components map[reflect.Type]any
 }
 
-
-
 func CreateSystem() *ECS {
 	return &ECS{
 		entities:   make(map[EntityId]empty),
@@ -52,7 +50,7 @@ func AddComponent[T any](s *ECS, id EntityId, c T) {
 		store = createComponentStore[T]()
 		s.components[t] = store
 	}
-	store.(*componentStore[T]).data[id] = c
+	store.(*componentStore[T]).Data[id] = c
 }
 
 func GetComponent[T any](s *ECS, id EntityId) (*T, error) {
@@ -63,7 +61,7 @@ func GetComponent[T any](s *ECS, id EntityId) (*T, error) {
 	if !ok {
 		return nil, fmt.Errorf("could not get component from entity %v, no store found with type %v", id, t)
 	}
-	res, ok := store.(*componentStore[T]).data[id]
+	res, ok := store.(*componentStore[T]).Data[id]
 	if !ok {
 		return nil, fmt.Errorf("could not get component from entity %v, no component found with type %v", id, t)
 	}
@@ -78,11 +76,7 @@ func RemoveComponent[T any](s *ECS, id EntityId) {
 	if !ok {
 		return
 	}
-	delete(store.(*componentStore[T]).data, id)
-}
-
-type componentStore[T any] struct {
-	data map[EntityId]T
+	delete(store.(*componentStore[T]).Data, id)
 }
 
 func Query2[T1 any, T2 any](s *ECS) (entities []EntityId, comp1 []T1, comp2 []T2) {
@@ -98,8 +92,8 @@ func Query2[T1 any, T2 any](s *ECS) (entities []EntityId, comp1 []T1, comp2 []T2
 		return
 	}
 
-	map1 := store1.(*componentStore[T1]).data
-	map2 := store2.(*componentStore[T2]).data
+	map1 := store1.(*componentStore[T1]).Data
+	map2 := store2.(*componentStore[T2]).Data
 
 	// Loop for the least amount of iterations
 	if len(map1) < len(map2) {
@@ -122,12 +116,23 @@ func Query2[T1 any, T2 any](s *ECS) (entities []EntityId, comp1 []T1, comp2 []T2
 	return
 }
 
+// Has to tightly pack components.
+//
+// Has to be able to quickly iterate those components.
+//
+// Has to allow queries of components based on EntityId.
+//
+// Has to be able to map EntityId to a component.
+type componentStore[T any] struct {
+	Data map[EntityId]T // TODO: This is a shitty implementation, fix it at some point please. [https://github.com/SanderMertens/ecs-faq]
+}
+
 func createComponentStore[T any]() *componentStore[T] {
 	return &componentStore[T]{
-		data: make(map[EntityId]T),
+		Data: make(map[EntityId]T),
 	}
 }
 
 func (c *componentStore[T]) Delete(id EntityId) {
-	delete(c.data, id)
+	delete(c.Data, id)
 }

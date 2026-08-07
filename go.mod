@@ -2,11 +2,7 @@ module github.com/StoneTrench/go-mc-clone
 
 go 1.26.2
 
-require (
-	github.com/StoneTrench/go-mat-lib v1.0.0
-	github.com/veandco/go-sdl2 v0.4.40
-	github.com/vulkan-go/vulkan v0.0.0-20221209234627-c0a353ae26c8
-)
+require github.com/StoneTrench/go-mat-lib v1.0.0
 
 require (
 	github.com/ebitengine/purego v0.10.0 // indirect
@@ -16,10 +12,8 @@ require (
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/blang/semver/v4 v4.0.0
 	github.com/gen2brain/raylib-go/raylib v0.60.0
-	github.com/tetratelabs/wazero v1.12.0 // indirect
-	golang.org/x/mod v0.38.0
+	github.com/tetratelabs/wazero v1.12.0
 	golang.org/x/sys v0.44.0 // indirect
 )
 

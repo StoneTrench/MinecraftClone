@@ -6,10 +6,11 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path"
 	"time"
-
-	"github.com/StoneTrench/go-mc-clone/metadata"
 )
+
+const LOGGING_DIR = "./logs"
 
 // Helper function for log file management.
 func compressAndRemove(srcPath, dstPath string) error {
@@ -41,27 +42,33 @@ func compressAndRemove(srcPath, dstPath string) error {
 
 // Init initializes the main logger.
 // Should be called once at startup.
-func Init(logDir, latestLogName string) error {
-	latestPath := logDir + "/" + latestLogName + ".log"
+func Init(noFile bool) (err error) {
+	// By the way, these comments are human made and are here cause when I was half asleep debugging the code, I kept thinking parts of this were mistakes lol
+	latestPath := path.Join(LOGGING_DIR, "latest.log")
 
-	// Ignore the mkdir error intentionally
-	os.MkdirAll(logDir, 0755)
+	var file *os.File
+	var old_log_error error
+	if !noFile {
+		// Ignore the mkdir error intentionally
+		os.MkdirAll(LOGGING_DIR, 0755)
 
-	var old_log_error error = nil
-	// Check if latest exists, if yes move it
-	if _, err := os.Stat(latestPath); err == nil {
-		archiveName := fmt.Sprintf("%s/log-%s.log.gz", logDir, time.Now().Format("2006-01-02-150405"))
+		// Check if latest exists, if yes move it
+		if _, err := os.Stat(latestPath); err == nil {
+			archiveName := path.Join(LOGGING_DIR, fmt.Sprintf("log-%s.log.gz", time.Now().Format("2006-01-02-150405")))
 
-		if err := compressAndRemove(latestPath, archiveName); err != nil {
-			old_log_error = fmt.Errorf("failed to archive old log, %v", err)
+			if err := compressAndRemove(latestPath, archiveName); err != nil {
+				old_log_error = fmt.Errorf("failed to archive old log, %v", err)
+			}
+		}
+
+		// No defer file.Close() because this stays open for the entire time the process is running
+		file, err = os.OpenFile(latestPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open log file: %v", err)
 		}
 	}
 
-	// No defer file.Close() because this stays open for the entire time the process is running
-	file, err := os.OpenFile(latestPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %v", err)
-	}
+	// handler := slog.NewTextHandler(io.MultiWriter(os.Stdout, file), nil)
 
 	handler := NewBracketHandler(io.MultiWriter(os.Stdout, file))
 	slog.SetDefault(slog.New(handler))
@@ -73,60 +80,27 @@ func Init(logDir, latestLogName string) error {
 	return nil
 }
 
-// Info is shorthand for
-//
-//	slog.Info(msg, args...)
-func Info(msg string, args ...any) {
-	slog.Info(msg, args...)
+func Infof(format string, args ...any) {
+	slog.Info(fmt.Sprintf(format, args...))
 }
-
-// Infof is shorthand for
-//
-//	slog.Info(fmt.Sprintf(format, s...))
-func Infof(format string, s ...any) {
-	slog.Info(fmt.Sprintf(format, s...))
+func Warnf(format string, args ...any) {
+	slog.Warn(fmt.Errorf(format, args...).Error())
 }
-
-// Warn is shorthand for
-//
-//	slog.Warn(msg, args...)
-func Warn(msg string, args ...any) {
-	slog.Warn(msg, args...)
+func Errorf(format string, args ...any) {
+	slog.Error(fmt.Errorf(format, args...).Error())
 }
-
-// Error is shorthand for
-//
-//	slog.Error(msg, args...)
-func Error(err any, args ...any) {
-	switch t := err.(type) {
-	case error:
-		slog.Error(t.Error(), args...)
-	case string:
-		slog.Error(t, args...)
-	default:
-		slog.Error(fmt.Sprint(t), args...)
-	}
+func Info(msg string) {
+	slog.Info(msg)
 }
-
-// Panic is shorthand for
-//
-//	slog.Error(err, args...)
-//	panic(err)
-func Panic(err any, args ...any) {
-	Error(err)
-	panic(err)
+func WarnStr(err string) {
+	slog.Warn(err)
 }
-
-// Assert is LogError, but with a condition.
-func Assert(cond bool, err any, args ...any) {
-	if !cond && metadata.IsInDebugMode() {
-		switch t := err.(type) {
-		case error:
-			slog.Error(t.Error(), args...)
-		case string:
-			slog.Error(t, args...)
-		default:
-			slog.Error(fmt.Sprint(t), args...)
-		}
-	}
+func ErrorStr(err string) {
+	slog.Error(err)
+}
+func Warn(err error) {
+	slog.Warn(err.Error())
+}
+func Error(err error) {
+	slog.Error(err.Error())
 }
