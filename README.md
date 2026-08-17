@@ -9,7 +9,7 @@ Ship and Active level mean the same thing.
 
 ## Physics
 - [ ] Collisions. Entities are mapped to chunks, so they are essentially spatially mapped, only try to collide entities which are in the same chunk, or neighbouring chunks.
-	- [ ] Entities have simple either spherical, or cylindrical, or maybe even cuboidal axis aligned collision "boxes".
+	- [ ] Entities have simple either spherical, or cylindrical, or maybe even cuboidal axis aligned collision boxes.
 	- [ ] Ships have a large AABB, which wraps around the whole thing, to quickly determine if there could be a collision, then their collision has to be handled per voxel, since they can be concave, maybe it could be further refined by having a non axis aligned bounding box too.
 
 - [ ] Decouple physics and fps, this mainly applies to the client, where if the fps is high we should accumulate physics ticks, and vice versa.

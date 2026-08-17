@@ -1,0 +1,50 @@
+package ecs
+
+type ComponentSet[T any] struct {
+	mu                sync.RWMutex
+	EntityToComponent []componentid_t // 0 is a sentinel value, which means there is no component attached to the entity
+	Components        []T
+}
+
+func (s *ComponentSet[T]) TryResize(e EntityRef) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := int(e.id) - len(s.EntityToComponent) + 1
+	if n > 0 {
+		s.EntityToComponent = append(s.EntityToComponent, make([]componentid_t, n)...)
+	}
+}
+
+func (s *ComponentSet[T]) AddComponent(e EntityRef, c T) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Components = append(s.Components, c)
+	s.EntityToComponent[e.id] = componentid_t(len(s.Components))
+}
+
+func (s *ComponentSet[T]) RemoveComponent(e EntityRef) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	remove_c_id := s.EntityToComponent[e.id]      // get the component id
+	last_c_id := componentid_t(len(s.Components)) // get the last component's id
+
+	if last_c_id == 0 || remove_c_id == 0 {
+		return // no components
+	}
+
+	remove_c_ptr := uint32(remove_c_id - 1)
+	last_c_ptr := uint32(last_c_id - 1)
+
+	s.EntityToComponent[e.id] = 0 // set the component id to the sentinel value
+
+	if last_c_id != remove_c_id {
+		s.Components[remove_c_ptr] = s.Components[last_c_ptr] // move the last component to the target component
+		for c, c_id := range s.EntityToComponent {
+			if c_id == last_c_id {
+				s.EntityToComponent[c] = remove_c_id // update the last component's reference index to the removed value, because it was moved there
+				break
+			}
+		}
+	}
+	s.Components = s.Components[:last_c_ptr] // shrink the slice by 1
+}

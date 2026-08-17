@@ -5,6 +5,8 @@ set -e
 #	COLLECT
 # ===============================================
 
+echo \[Build\] Collecting info
+
 __BUILD_NAME="Stone's MC Clone"
 
 TARGET_OS="${1:-$(go env GOOS)}"
@@ -36,29 +38,33 @@ __BUILD_BUILT=$(date -u +%Y-%m-%d\ %H\:%M\:%S)
 #	CONSTRUCT
 # ===============================================
 
+echo \[Build\] Building project
+
 rm -fr "./_out/"
 
 mkdir -p "./_out/"
 
 for file in ./include/mods/*/; do
-	echo "$file"
 	(cd "$file" && sh build.sh)
 done
 
 cp -r ./include/* ./_out/
 
 GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -ldflags " \
-  -X \"${PROJECT_GIT}/metadata.BUILD_NAME=${__BUILD_NAME}\" \
-  -X \"${PROJECT_GIT}/metadata.BUILD_TAG=${__BUILD_TAG}\" \
-  -X \"${PROJECT_GIT}/metadata.BUILD_BUILT=${__BUILD_BUILT}\" \
-  -X \"${PROJECT_GIT}/metadata.BUILD_COMMIT=${__BUILD_COMMIT}\" \
-  -X \"${PROJECT_GIT}/metadata.BUILD_MODE=${__BUILD_MODE}\" \
-  -X \"${PROJECT_GIT}/metadata.BUILD_TARGET=${__BUILD_TARGET}\"" \
+  -X \"${PROJECT_GIT}/src.engine.BUILD_NAME=${__BUILD_NAME}\" \
+  -X \"${PROJECT_GIT}/src.engine.BUILD_TAG=${__BUILD_TAG}\" \
+  -X \"${PROJECT_GIT}/src.engine.BUILD_BUILT=${__BUILD_BUILT}\" \
+  -X \"${PROJECT_GIT}/src.engine.BUILD_COMMIT=${__BUILD_COMMIT}\" \
+  -X \"${PROJECT_GIT}/src.engine.BUILD_MODE=${__BUILD_MODE}\" \
+  -X \"${PROJECT_GIT}/src.engine.BUILD_TARGET=${__BUILD_TARGET}\"" \
   -o "./_out/$OUTPUT_NAME"
 
 # ===============================================
 #	ZIP
 # ===============================================
+
+exit
+echo \[Build\] Compressing project
 
 if [ ! -f "./_out/$OUTPUT_NAME" ]; then
     echo "ERROR: Build failed - binary not found at ./_out/$OUTPUT_NAME"
