@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -15,12 +16,13 @@ const (
 )
 
 var (
-	BUILD_NAME   string = "" // Do not read from these!
-	BUILD_TAG    string = "" // Do not read from these!
-	BUILD_BUILT  string = "" // Do not read from these!
-	BUILD_COMMIT string = "" // Do not read from these!
-	BUILD_MODE   string = "" // Do not read from these!
-	BUILD_TARGET string = "" // Do not read from these!
+	BUILD_NAME        string = "" // Do not read from these!
+	BUILD_TAG         string = "" // Do not read from these!
+	BUILD_BUILT       string = "" // Do not read from these!
+	BUILD_COMMIT      string = "" // Do not read from these!
+	BUILD_MODE        string = "" // Do not read from these!
+	BUILD_TARGET      string = "" // Do not read from these!
+	BUILD_API_VERSION string = "" // Do not read from these!
 )
 
 var (
@@ -31,9 +33,10 @@ var (
 	internal_commit         string
 	internal_mode           ENGINE_MODE
 	internal_target         string
+	internal_api_version    int
 )
 
-func Init() error {
+func init_meta() error {
 	if internal_is_initialized {
 		return fmt.Errorf("metadata already initialized")
 	}
@@ -52,14 +55,20 @@ func Init() error {
 	if len(BUILD_MODE) == 0 {
 		return fmt.Errorf("engine mode was nil")
 	}
+	if len(BUILD_API_VERSION) == 0 {
+		return fmt.Errorf("api version was nil")
+	}
 
-	internal_name = BUILD_NAME
-	internal_tag = semver.MustParse(BUILD_TAG)
-	internal_commit = BUILD_COMMIT
 	var err error
+	internal_name = BUILD_NAME
+	internal_tag, err = semver.NewVersion(BUILD_TAG)
+	if err != nil {
+		return fmt.Errorf("failed to parse version (build tag): %w", err)
+	}
+	internal_commit = BUILD_COMMIT
 	internal_built, err = time.Parse(time.DateTime, BUILD_BUILT)
 	if err != nil {
-		return fmt.Errorf("failed to parse build time, %w", err)
+		return fmt.Errorf("failed to parse build time: %w", err)
 	}
 	switch BUILD_MODE {
 	case "RELEASE":
@@ -70,6 +79,11 @@ func Init() error {
 		return fmt.Errorf("invalid engine mode: %s", BUILD_MODE)
 	}
 	internal_target = BUILD_TARGET
+	api_ver, err := strconv.Atoi(BUILD_API_VERSION)
+	if err != nil {
+		return fmt.Errorf("failed to parse api version: %w", err)
+	}
+	internal_api_version = api_ver
 
 	BUILD_NAME = ""
 	BUILD_TAG = ""
@@ -77,32 +91,41 @@ func Init() error {
 	BUILD_BUILT = ""
 	BUILD_MODE = ""
 	BUILD_TARGET = ""
+	BUILD_API_VERSION = ""
 
 	internal_is_initialized = true
 	return nil
 }
 
-func GetFormattedApplicationLabel() string {
+func verifyIsInit() {
 	if !internal_is_initialized {
 		panic("metadata not initialized")
 	}
+}
 
-	var suffix = ""
+func GetFormattedApplicationLabel() string {
+	verifyIsInit()
+
+	var suffix = "Release"
 	if IsInDebugMode() {
-		suffix = " [DEBUG]"
+		suffix = "Debug"
 	}
-	return fmt.Sprintf("%s & v%s -o- %s (%s)%s",
+	return fmt.Sprintf("%s & v%s -o- %s (%s) v%d %s",
 		internal_name,
 		internal_tag,
 		internal_commit,
 		internal_built.Format(time.DateTime),
+		internal_api_version,
 		suffix,
 	)
 }
 
 func IsInDebugMode() bool {
-	if !internal_is_initialized {
-		panic("metadata not initialized")
-	}
+	verifyIsInit()
 	return internal_mode == MODE_DEBUG
+}
+
+func GetApiVersion() int {
+	verifyIsInit()
+	return internal_api_version
 }

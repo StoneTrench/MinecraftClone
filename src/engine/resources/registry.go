@@ -49,16 +49,19 @@ type Registry[T any, I constraints.Integer] struct {
 	ident2id_map map[string]I
 }
 
-func CreateRegistry[T any, I constraints.Integer](capacity int, name string) *Registry[T, I] {
-	return &Registry[T, I]{
-		name:         name,
-		resources:    make(map[string]T),
-		is_frozen:    false,
-		is_id_valid:  false,
-		version:      0,
-		id2ident_arr: make([]string, 0, capacity),
-		ident2id_map: make(map[string]I, capacity),
-	}
+func CreateRegistry[T any, I constraints.Integer](name string) *Registry[T, I] {
+	r := &Registry[T, I]{name: name}
+	r.Reset()
+	return r
+}
+
+func (r *Registry[T, I]) Reset() {
+	r.resources = make(map[string]T)
+	r.is_frozen = false
+	r.is_id_valid = false
+	r.version = 0
+	r.id2ident_arr = make([]string, 0)
+	r.ident2id_map = make(map[string]I)
 }
 
 func (r *Registry[T, I]) GetVersion() uint32 {

@@ -4,7 +4,7 @@
 	"description": "The primary content of this game.",
 	"author": "StoneTrench",
 
-	"api_version": "*",
+	"api_version": 0,
 	"dependencies": {},
 	"incompatibilities": {},
 

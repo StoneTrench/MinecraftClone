@@ -40,6 +40,11 @@ func Init() error {
 	chunk_pos := vec.InitVector3[int32](0, 0, 0)
 	chunk := level.GetChunk(chunk_pos, true)
 
+	STONE, _ := game.RegistryBlocks.GetId("core:stone")
+	GRASS, _ := game.RegistryBlocks.GetId("core:grass")
+	// DIRT := game.RegistryBlocks.GetId("core:dirt")
+	AIR, _ := game.RegistryBlocks.GetId("core:air")
+
 	for local_pos := range world.IterateChunk() {
 		fx := float32(local_pos.X)
 		fz := float32(local_pos.Z)
@@ -49,11 +54,11 @@ func Init() error {
 		h := int32((sinX*cosZ)*12 + 15)
 
 		if y < h {
-			chunk.SetBlock(local_pos, 1)
+			chunk.SetBlock(local_pos, STONE)
 		} else if y < h+1 {
-			chunk.SetBlock(local_pos, 2)
+			chunk.SetBlock(local_pos, GRASS)
 		} else {
-			chunk.SetBlock(local_pos, 0)
+			chunk.SetBlock(local_pos, AIR)
 		}
 	}
 
@@ -71,7 +76,7 @@ func Init() error {
 
 	msh, err := GenerateChunkMesh(level, chunk_pos, game.RegistryBlocks)
 	if err != nil {
-		return fmt.Errorf("failed to generate chunk mesh, %w", err)
+		return fmt.Errorf("failed to generate chunk mesh: %w", err)
 	}
 	defer rl.UnloadMesh(&msh)
 	mat := rl.LoadMaterialDefault()

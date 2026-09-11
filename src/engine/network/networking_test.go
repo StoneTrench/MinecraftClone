@@ -10,7 +10,7 @@ import (
 )
 
 func Test(t *testing.T) {
-	log.Init(true)
+	log.Init("", true)
 
 	log.Info("Server started")
 	server, err := network.StartServer(context.Background(), 25565)

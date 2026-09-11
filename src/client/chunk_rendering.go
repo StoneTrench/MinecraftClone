@@ -80,7 +80,7 @@ func GenerateChunkMesh(level *world.Level, chunk_pos vec.Vector3[int32], reg_blo
 				block_id := chunk.Blocks[world.LocalToIndex(local_pos)]
 				block_type, err := reg_blocks.GetById(block_id)
 				if err != nil {
-					return mesh, fmt.Errorf("failed to get block type for mesh, %w", err)
+					return mesh, fmt.Errorf("failed to get block type for mesh: %w", err)
 				}
 
 				if block_type.IsSolid {
@@ -95,7 +95,7 @@ func GenerateChunkMesh(level *world.Level, chunk_pos vec.Vector3[int32], reg_blo
 						if err == nil {
 							neigh_type, err := reg_blocks.GetById(neigh_id)
 							if err != nil {
-								return mesh, fmt.Errorf("failed to get neighbour block type for mesh, %w", err)
+								return mesh, fmt.Errorf("failed to get neighbour block type for mesh: %w", err)
 							}
 							can_draw_face = !neigh_type.IsSolid
 						}

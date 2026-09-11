@@ -11,4 +11,4 @@ Game engines are like an onion, they have **layers**, and it is best practice to
 + If owned events are used, events should not fire on object construction (only applies to OOP?) because the subscribers may not be ready yet.
 
 
-[^1]: [link](https://cleangamearchitecture.com/event-systems/)
+[^1]: https://cleangamearchitecture.com/event-systems/

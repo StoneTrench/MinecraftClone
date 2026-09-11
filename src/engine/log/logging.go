@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const LOGGING_DIR = "./logs"
-
 // Helper function for log file management.
 func compressAndRemove(srcPath, dstPath string) error {
 	srcFile, err := os.Open(srcPath)
@@ -42,19 +40,22 @@ func compressAndRemove(srcPath, dstPath string) error {
 
 // Init initializes the main logger.
 // Should be called once at startup.
-func Init(noFile bool) (err error) {
+func Init(logDir string, noFile bool) (err error) {
 	// By the way, these comments are human made and are here cause when I was half asleep debugging the code, I kept thinking parts of this were mistakes lol
-	latestPath := path.Join(LOGGING_DIR, "latest.log")
+	var latestPath string
+	if !noFile {
+		latestPath = path.Join(logDir, "latest.log")
+	}
 
 	var file *os.File
 	var old_log_error error
 	if !noFile {
 		// Ignore the mkdir error intentionally
-		os.MkdirAll(LOGGING_DIR, 0755)
+		os.MkdirAll(logDir, 0755)
 
 		// Check if latest exists, if yes move it
 		if _, err := os.Stat(latestPath); err == nil {
-			archiveName := path.Join(LOGGING_DIR, fmt.Sprintf("log-%s.log.gz", time.Now().Format("2006-01-02-150405")))
+			archiveName := path.Join(logDir, fmt.Sprintf("log-%s.log.gz", time.Now().Format("2006-01-02-150405")))
 
 			if err := compressAndRemove(latestPath, archiveName); err != nil {
 				old_log_error = fmt.Errorf("failed to archive old log, %v", err)

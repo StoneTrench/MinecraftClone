@@ -8,10 +8,11 @@ set -e
 echo \[Build\] Collecting info
 
 __BUILD_NAME="Stone's MC Clone"
+__BUILD_API_VERSION="0"
 
 TARGET_OS="${1:-$(go env GOOS)}"
 TARGET_ARCH="${2:-$(go env GOARCH)}"
-__BUILD_MODE="${3:-"RELEASE"}"
+__BUILD_MODE="${3:-"DEBUG"}"
 __BUILD_TARGET="${TARGET_OS}/${TARGET_ARCH}"
 
 # Validate OS (basic check)
@@ -38,25 +39,23 @@ __BUILD_BUILT=$(date -u +%Y-%m-%d\ %H\:%M\:%S)
 #	CONSTRUCT
 # ===============================================
 
-echo \[Build\] Building project
+echo \[Build\] Including content
 
 rm -fr "./_out/"
-
 mkdir -p "./_out/"
 
-for file in ./include/mods/*/; do
-	(cd "$file" && sh build.sh)
-done
+sh modbuild.sh
 
-cp -r ./include/* ./_out/
+echo \[Build\] Building project
 
 GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -ldflags " \
-  -X \"${PROJECT_GIT}/src.engine.BUILD_NAME=${__BUILD_NAME}\" \
-  -X \"${PROJECT_GIT}/src.engine.BUILD_TAG=${__BUILD_TAG}\" \
-  -X \"${PROJECT_GIT}/src.engine.BUILD_BUILT=${__BUILD_BUILT}\" \
-  -X \"${PROJECT_GIT}/src.engine.BUILD_COMMIT=${__BUILD_COMMIT}\" \
-  -X \"${PROJECT_GIT}/src.engine.BUILD_MODE=${__BUILD_MODE}\" \
-  -X \"${PROJECT_GIT}/src.engine.BUILD_TARGET=${__BUILD_TARGET}\"" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_NAME=${__BUILD_NAME}\" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_TAG=${__BUILD_TAG}\" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_BUILT=${__BUILD_BUILT}\" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_COMMIT=${__BUILD_COMMIT}\" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_MODE=${__BUILD_MODE}\" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_TARGET=${__BUILD_TARGET}\" \
+  -X \"${PROJECT_GIT}/src/engine.BUILD_API_VERSION=${__BUILD_API_VERSION}\"" \
   -o "./_out/$OUTPUT_NAME"
 
 # ===============================================

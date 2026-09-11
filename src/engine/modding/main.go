@@ -1,11 +1,12 @@
 package modding
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path"
+
+	"github.com/tetratelabs/wazero/api"
 )
 
 func load_mod_headers(entries []os.DirEntry) ([]Mod, error) {
@@ -122,48 +123,67 @@ func sort_by_dependency(mod_list []Mod) ([]Mod, error) {
 	return sorted, errors.Join(err_list...)
 }
 
-func LoadMods(ctx context.Context) ([]Mod, error) {
-	entries, err := os.ReadDir("./mods/")
+var LoadedModsList []Mod
+var name_to_mod map[string]int
+
+func LoadMods(folder string) error {
+	LoadedModsList = nil
+	entries, err := os.ReadDir(folder)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load mods, %w", err)
+		return fmt.Errorf("failed to load mods, %w", err)
 	}
 
 	// Load mod headers
 	mods, err := load_mod_headers(entries)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Sort mods based on dependency
 	// Skip mods with missing dependencies and log errors
 	mods, err = sort_by_dependency(mods)
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	name_to_mod = make(map[string]int)
+	LoadedModsList = mods
+	for i := range mods {
+		m := &mods[i]
+		name_to_mod[m.GetName()] = i
 	}
 
 	// Load guest modules
-	for _, m := range mods {
-		err := m.LoadGuestModule(ctx)
+	var error_arr []error
+	for i := range mods {
+		m := &mods[i]
+		err := m.LoadWasm()
 		if err != nil {
-			return nil, err
+			error_arr = append(error_arr, err)
+			continue
 		}
 	}
 
 	// Finish
-
-	return mods, nil
+	return errors.Join(error_arr...)
 }
-
-func Init() error {
-	ctx := context.Background()
-
-	_, err := LoadMods(ctx)
-	if err != nil {
-		return err
+func GetMod(name string) *Mod {
+	if LoadedModsList == nil {
+		return nil
 	}
-	// for _, m := range mods {
-	// 	defer m.Close(ctx)
-	// }
-
+	i, ok := name_to_mod[name]
+	if ok {
+		return &LoadedModsList[i]
+	}
 	return nil
+}
+func GetModWasm(m api.Module) *Mod {
+	if LoadedModsList == nil {
+		return nil
+	}
+	i, exists := name_to_mod[m.Name()]
+	if !exists {
+		return nil
+	}
+	return &LoadedModsList[i]
 }

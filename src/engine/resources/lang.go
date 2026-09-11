@@ -8,24 +8,24 @@ import (
 )
 
 var language_map map[string]string = make(map[string]string)
-var fallback_language_map map[string]string = make(map[string]string)
 
 func LangTranslate(key string, args ...any) string {
 	format, exists := language_map[key]
-	if !exists {
-		slog.Warn(fmt.Sprintf("no translation found for key (%s)", key))
-		format, exists = fallback_language_map[key]
-	}
 	if !exists {
 		slog.Warn(fmt.Sprintf("no fallback translation found for key (%s)", key))
 		return key
 	}
 	return fmt.Sprintf(format, args...)
 }
-func LangClear() {
-	for k := range language_map {
-		delete(language_map, k)
+func LangTryTranslate(key string, args ...any) string {
+	format, exists := language_map[key]
+	if !exists {
+		return key
 	}
+	return fmt.Sprintf(format, args...)
+}
+func LangClear() {
+	language_map = make(map[string]string)
 }
 func append_lang(path string, m map[string]string) error {
 	data, err := os.ReadFile(path)
@@ -49,7 +49,4 @@ func append_lang(path string, m map[string]string) error {
 }
 func LangAppend(path string) error {
 	return append_lang(path, language_map)
-}
-func LangAppendFallback(path string) error {
-	return append_lang(path, fallback_language_map)
 }
