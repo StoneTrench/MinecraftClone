@@ -1,146 +1,89 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
-	"path"
-	"regexp"
 )
 
-type ModuleConfigId uint32
-
-type ModuleConfig struct {
+type Config struct {
 	FilePath      string             `json:"-"`
 	StringEntries map[string]string  `json:"string_entries"`
 	IntEntries    map[string]int64   `json:"int_entries"`
 	FloatEntries  map[string]float64 `json:"float_entries"`
 }
 
-var already_open map[string]ModuleConfigId = make(map[string]ModuleConfigId)
-var open_configs []ModuleConfig
-
-const CONFIG_FOLDER = "./config/"
-const ENGINE_CONFIG = "engine.json"
-
-var name_replacer = regexp.MustCompile(`[^a-zA-Z0-9_]`)
-
-func LoadConfig(name string) (ModuleConfigId, error) {
-	config_path := CONFIG_FOLDER
-	if len(name) == 0 {
-		config_path = path.Join(config_path, ENGINE_CONFIG)
-	} else {
-		config_path = path.Join(config_path, fmt.Sprintf("%s_config.json", name_replacer.ReplaceAllString(name, "_")))
-	}
-	if id, exists := already_open[config_path]; exists {
-		cfg := &open_configs[id]
-		data, err := os.ReadFile(config_path)
-		if err != nil {
-			return 0, err
-		}
-		
-		if len(data) == 0 {
-			cfg.StringEntries = make(map[string]string)
-			cfg.IntEntries = make(map[string]int64)
-			cfg.FloatEntries = make(map[string]float64)
-			return id, nil
-		}
-
-		var tmp ModuleConfig
-		if err := json.Unmarshal(data, &tmp); err != nil {
-			return 0, err
-		}
-
-		cfg.StringEntries = tmp.StringEntries
-		cfg.IntEntries = tmp.IntEntries
-		cfg.FloatEntries = tmp.FloatEntries
-
-		return id, nil
-	}
-
-	os.MkdirAll(CONFIG_FOLDER, 0755)
-
-	var cfg ModuleConfig
-	cfg.FilePath = config_path
-	cfg.StringEntries = make(map[string]string)
-	cfg.IntEntries = make(map[string]int64)
-	cfg.FloatEntries = make(map[string]float64)
-
-	data, err := os.ReadFile(config_path)
-	if err != nil && !os.IsNotExist(err) {
-		return 0, err
-	}
-	if err == nil && len(data) > 0 {
-		if err := json.Unmarshal(data, &cfg); err != nil {
-			return 0, err
-		}
-	}
-
-	id := ModuleConfigId(len(open_configs))
-	open_configs = append(open_configs, cfg)
-	already_open[config_path] = id
-
-	return id, nil
+func (c *Config) Init(path string) {
+	c.FilePath = path
+	c.StringEntries = make(map[string]string)
+	c.IntEntries = make(map[string]int64)
+	c.FloatEntries = make(map[string]float64)
 }
-func FlushAll() (err error) {
-	for i := range open_configs {
-		if e := FlushConfig(ModuleConfigId(i)); e != nil {
-			err = errors.Join(e)
+
+func (c *Config) OpenOrCreate() error {
+	file, err := os.Open(c.FilePath)
+	if errors.Is(err, os.ErrNotExist) {
+		if file != nil {
+			err = file.Close()
+			if err != nil {
+				return err
+			}
 		}
+		file, err = os.Create(c.FilePath)
 	}
-	return err
-}
-func FlushConfig(id ModuleConfigId) error {
-	if int(id) >= len(open_configs) {
-		return fmt.Errorf("invalid config id")
-	}
-	cfg := open_configs[id]
-	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(cfg.FilePath, data, 0644)
+	defer file.Close()
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(file)
+	if err != nil {
+		return err
+	}
+	if buf.Len() == 0 {
+		return nil
+	}
+
+	var tmp Config
+	err = json.Unmarshal(buf.Bytes(), &tmp)
+	if err != nil {
+		return err
+	}
+
+	c.StringEntries = tmp.StringEntries
+	c.IntEntries = tmp.IntEntries
+	c.FloatEntries = tmp.FloatEntries
+
+	return nil
 }
-func ClearConfigs() {
-	open_configs = nil
-	already_open = make(map[string]ModuleConfigId)
+func (c *Config) FlushConfig() error {
+	data, err := json.MarshalIndent(*c, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(c.FilePath, data, 0644)
 }
 
-func GetString(id ModuleConfigId, key string) (string, bool) {
-	if int(id) >= len(open_configs) {
-		return "", false
-	}
-	val, ok := open_configs[id].StringEntries[key]
+func (c *Config) GetString(key string) (string, bool) {
+	val, ok := c.StringEntries[key]
 	return val, ok
 }
-func GetInt(id ModuleConfigId, key string) (int64, bool) {
-	if int(id) >= len(open_configs) {
-		return 0, false
-	}
-	val, ok := open_configs[id].IntEntries[key]
+func (c *Config) GetInt(key string) (int64, bool) {
+	val, ok := c.IntEntries[key]
 	return val, ok
 }
-func GetFloat(id ModuleConfigId, key string) (float64, bool) {
-	if int(id) >= len(open_configs) {
-		return 0, false
-	}
-	val, ok := open_configs[id].FloatEntries[key]
+func (c *Config) GetFloat(key string) (float64, bool) {
+	val, ok := c.FloatEntries[key]
 	return val, ok
 }
 
-func SetString(id ModuleConfigId, key string, value string) {
-	if int(id) < len(open_configs) {
-		open_configs[id].StringEntries[key] = value
-	}
+func (c *Config) SetString(key string, value string) {
+	c.StringEntries[key] = value
 }
-func SetInt(id ModuleConfigId, key string, value int64) {
-	if int(id) < len(open_configs) {
-		open_configs[id].IntEntries[key] = value
-	}
+func (c *Config) SetInt(key string, value int64) {
+	c.IntEntries[key] = value
 }
-func SetFloat(id ModuleConfigId, key string, value float64) {
-	if int(id) < len(open_configs) {
-		open_configs[id].FloatEntries[key] = value
-	}
+func (c *Config) SetFloat(key string, value float64) {
+	c.FloatEntries[key] = value
 }

@@ -21,8 +21,8 @@ Ship and Active level mean the same thing.
 + [x] Skip mods with missing dependencies, and collect errors
 + [ ] Load mod assets
 + [x] Load mod program
-+ [?] Load api for mod
-+ [ ] Call initializer functions (to define registry entries, callbacks, systems)
++ [x] Load api for mod
++ [x] Call initializer functions (to define registry entries, callbacks, systems)
 
 - [ ] World generation happens in phases, where each phase only has access to the previous phase data in itself and neighbouring chunks.
 	- [ ] World generation doesn't read data from the actual world, but either from a world generation cache, or a it regenerates the data for the neighbours.
@@ -53,6 +53,13 @@ Ship and Active level mean the same thing.
 - [ ] Skybox.
 - [ ] Level rendering.
 	- [ ] Ship rendering.
+
+## Resources
+- [ ] WebAssembly target compatible file system wrapper
+	- So we can embed the engine+mods into a webpage
+- [ ] Unified asset loading from mods
+- [ ] (client side only) Texture Atlas, texture loading from mods
+- [ ] (client side only) Sounds registry
 
 # Features
 - [ ] Insert items and icons into text like in Factorio.

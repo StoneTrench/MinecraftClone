@@ -9,8 +9,6 @@ import (
 
 const MODULE_NAME = "engine_bindings"
 
-var GOLANG = &GoLangBuilder{}
-
 func hDeclType(guest, host *strings.Builder, state ILangBuilder, name string, t IType) TypeIdent {
 	DeclType(guest, state, name, t)
 	return DeclType(host, GOLANG, name, t)
@@ -52,6 +50,7 @@ func main() {
 	hDeclFunc(bguest, bhost, state, "log-info", fn_slog)
 	hDeclFunc(bguest, bhost, state, "log-warn", fn_slog)
 	hDeclFunc(bguest, bhost, state, "log-error", fn_slog)
+
 	hDeclFunc(bguest, bhost, state, "register-block", TypeFunc{
 		[]Param{{"block", BlockType_t}},
 		[]Param{{"namespaceid", TypeP_string}},
@@ -59,6 +58,23 @@ func main() {
 	hDeclFunc(bguest, bhost, state, "append-lang", TypeFunc{
 		[]Param{{"name", TypeP_string}},
 		nil,
+	})
+
+	hDeclFunc(bguest, bhost, state, "config-set-int", TypeFunc{Input: []Param{{"name", TypeP_string}, {"value", TypeP_i64}}})
+	hDeclFunc(bguest, bhost, state, "config-set-float", TypeFunc{Input: []Param{{"name", TypeP_string}, {"value", TypeP_f64}}})
+	hDeclFunc(bguest, bhost, state, "config-set-string", TypeFunc{Input: []Param{{"name", TypeP_string}, {"value", TypeP_string}}})
+
+	hDeclFunc(bguest, bhost, state, "config-get-int", TypeFunc{
+		[]Param{{"name", TypeP_string}},
+		[]Param{{"value", TypeP_i64}},
+	})
+	hDeclFunc(bguest, bhost, state, "config-get-float", TypeFunc{
+		[]Param{{"name", TypeP_string}},
+		[]Param{{"value", TypeP_f64}},
+	})
+	hDeclFunc(bguest, bhost, state, "config-get-string", TypeFunc{
+		[]Param{{"name", TypeP_string}},
+		[]Param{{"value", TypeP_string}},
 	})
 
 	file, err := os.Create("bindings/go/api.go")

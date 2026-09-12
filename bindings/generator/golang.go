@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+var GOLANG = &GoLangBuilder{}
+
 type GoLangBuilder struct{}
 
 func (g *GoLangBuilder) WriteGuestEncode(b *strings.Builder, p Param) {

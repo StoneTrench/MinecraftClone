@@ -27,8 +27,8 @@ func DeclFunc(b *strings.Builder, state ILangBuilder, module, name string, fn Ty
 	}
 
 	for _, e := range FullyLowerParams(rets) {
-		wasm_output_vars = append(wasm_output_vars, e)
 		e.Type = TypeP_WasmPointer
+		wasm_output_vars = append(wasm_output_vars, e)
 		wasm_params = append(wasm_params, e)
 	}
 

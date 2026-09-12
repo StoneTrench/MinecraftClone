@@ -72,3 +72,58 @@ name=(string)(uReadString(mod, name_str, name_len));
 fn(mod,name);
 }}
 }
+func ConfigSetInt(fn func(m api.Module,name string,value int64)())(HostBinding){
+return HostBinding{"config-set-int",func(ctx context.Context,mod api.Module,name_str uint32,name_len uint32,value_w int64)(){
+var name string;
+name=(string)(uReadString(mod, name_str, name_len));
+var value int64;
+value=(int64)(value_w);
+fn(mod,name,value);
+}}
+}
+func ConfigSetFloat(fn func(m api.Module,name string,value float64)())(HostBinding){
+return HostBinding{"config-set-float",func(ctx context.Context,mod api.Module,name_str uint32,name_len uint32,value_w float64)(){
+var name string;
+name=(string)(uReadString(mod, name_str, name_len));
+var value float64;
+value=(float64)(value_w);
+fn(mod,name,value);
+}}
+}
+func ConfigSetString(fn func(m api.Module,name string,value string)())(HostBinding){
+return HostBinding{"config-set-string",func(ctx context.Context,mod api.Module,name_str uint32,name_len uint32,value_str uint32,value_len uint32)(){
+var name string;
+name=(string)(uReadString(mod, name_str, name_len));
+var value string;
+value=(string)(uReadString(mod, value_str, value_len));
+fn(mod,name,value);
+}}
+}
+func ConfigGetInt(fn func(m api.Module,name string)(value int64))(HostBinding){
+return HostBinding{"config-get-int",func(ctx context.Context,mod api.Module,name_str uint32,name_len uint32,value_w uint32)(){
+var name string;
+name=(string)(uReadString(mod, name_str, name_len));
+value:=fn(mod,name);
+uWriteAnyFixed[int64](mod,value,value_w);
+}}
+}
+func ConfigGetFloat(fn func(m api.Module,name string)(value float64))(HostBinding){
+return HostBinding{"config-get-float",func(ctx context.Context,mod api.Module,name_str uint32,name_len uint32,value_w uint32)(){
+var name string;
+name=(string)(uReadString(mod, name_str, name_len));
+value:=fn(mod,name);
+uWriteAnyFixed[float64](mod,value,value_w);
+}}
+}
+func ConfigGetString(fn func(m api.Module,name string)(value string))(HostBinding){
+return HostBinding{"config-get-string",func(ctx context.Context,mod api.Module,name_str uint32,name_len uint32,value_str uint32,value_len uint32)(){
+_malloc:=mod.ExportedFunction("malloc");
+alloc:=func(size uint32)uint32{res,err:=_malloc.Call(ctx,uint64(size));
+if err!=nil{panic(err)};
+return uint32(res[0])};
+var name string;
+name=(string)(uReadString(mod, name_str, name_len));
+value:=fn(mod,name);
+uWriteString(mod,alloc,value,value_str,value_len);
+}}
+}

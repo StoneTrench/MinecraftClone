@@ -1,106 +1,175 @@
 package api_bindings
-
 import (
-	"unsafe"
+"unsafe"
 )
-
-type Color struct {
-	R uint8
-	G uint8
-	B uint8
-	A uint8
-}
-type BlockType struct {
-	Name    string
-	Color   Color
-	IsSolid bool
-}
-
+type Color struct{R uint8;
+G uint8;
+B uint8;
+A uint8}
+type BlockType struct{Name string;
+Color Color;
+IsSolid bool}
 //go:wasmimport engine_bindings log-info
-func engine_bindings_LogInfo(msg_str uint32, msg_len uint32)
+func engine_bindings_LogInfo(msg_str uint32,msg_len uint32);
 
-func LogInfo(msg string) {
-	var msg_str uint32
-	var msg_len uint32
-	msg_str = (uint32)(uintptr(unsafe.Pointer(unsafe.StringData(msg))))
-	msg_len = (uint32)(len(msg))
-	engine_bindings_LogInfo(msg_str, msg_len)
+func LogInfo(msg string){
+var msg_str uint32;
+var msg_len uint32;
+msg_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(msg))));
+msg_len=(uint32)(len(msg));
+engine_bindings_LogInfo(msg_str,msg_len);
 }
-
 //go:wasmimport engine_bindings log-warn
-func engine_bindings_LogWarn(msg_str uint32, msg_len uint32)
+func engine_bindings_LogWarn(msg_str uint32,msg_len uint32);
 
-func LogWarn(msg string) {
-	var msg_str uint32
-	var msg_len uint32
-	msg_str = (uint32)(uintptr(unsafe.Pointer(unsafe.StringData(msg))))
-	msg_len = (uint32)(len(msg))
-	engine_bindings_LogWarn(msg_str, msg_len)
+func LogWarn(msg string){
+var msg_str uint32;
+var msg_len uint32;
+msg_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(msg))));
+msg_len=(uint32)(len(msg));
+engine_bindings_LogWarn(msg_str,msg_len);
 }
-
 //go:wasmimport engine_bindings log-error
-func engine_bindings_LogError(msg_str uint32, msg_len uint32)
+func engine_bindings_LogError(msg_str uint32,msg_len uint32);
 
-func LogError(msg string) {
-	var msg_str uint32
-	var msg_len uint32
-	msg_str = (uint32)(uintptr(unsafe.Pointer(unsafe.StringData(msg))))
-	msg_len = (uint32)(len(msg))
-	engine_bindings_LogError(msg_str, msg_len)
+func LogError(msg string){
+var msg_str uint32;
+var msg_len uint32;
+msg_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(msg))));
+msg_len=(uint32)(len(msg));
+engine_bindings_LogError(msg_str,msg_len);
 }
-
 //go:wasmimport engine_bindings register-block
-func engine_bindings_RegisterBlock(block_Name_f_str uint32, block_Name_f_len uint32, block_IsSolid_f_b uint32, block_Color_f_R_f_w uint32, block_Color_f_G_f_w uint32, block_Color_f_B_f_w uint32, block_Color_f_A_f_w uint32, namespaceid_str uint32, namespaceid_len uint32)
+func engine_bindings_RegisterBlock(block_Name_f_str uint32,block_Name_f_len uint32,block_IsSolid_f_b uint32,block_Color_f_R_f_w uint32,block_Color_f_G_f_w uint32,block_Color_f_B_f_w uint32,block_Color_f_A_f_w uint32,namespaceid_str uint32,namespaceid_len uint32);
 
-func RegisterBlock(block BlockType) string {
-	var block_Name_f string
-	block_Name_f = (string)(block.Name)
-	var block_Name_f_str uint32
-	var block_Name_f_len uint32
-	block_Name_f_str = (uint32)(uintptr(unsafe.Pointer(unsafe.StringData(block_Name_f))))
-	block_Name_f_len = (uint32)(len(block_Name_f))
-	var block_Color_f Color
-	block_Color_f = (Color)(block.Color)
-	var block_Color_f_R_f uint8
-	block_Color_f_R_f = (uint8)(block_Color_f.R)
-	var block_Color_f_R_f_w uint32
-	block_Color_f_R_f_w = (uint32)(block_Color_f_R_f)
-	var block_Color_f_G_f uint8
-	block_Color_f_G_f = (uint8)(block_Color_f.G)
-	var block_Color_f_G_f_w uint32
-	block_Color_f_G_f_w = (uint32)(block_Color_f_G_f)
-	var block_Color_f_B_f uint8
-	block_Color_f_B_f = (uint8)(block_Color_f.B)
-	var block_Color_f_B_f_w uint32
-	block_Color_f_B_f_w = (uint32)(block_Color_f_B_f)
-	var block_Color_f_A_f uint8
-	block_Color_f_A_f = (uint8)(block_Color_f.A)
-	var block_Color_f_A_f_w uint32
-	block_Color_f_A_f_w = (uint32)(block_Color_f_A_f)
-	var block_IsSolid_f bool
-	block_IsSolid_f = (bool)(block.IsSolid)
-	var block_IsSolid_f_b uint32
-	if block_IsSolid_f {
-		block_IsSolid_f_b = (uint32)(1)
-	} else {
-		block_IsSolid_f_b = (uint32)(0)
-	}
-	var namespaceid_str uint32
-	var namespaceid_len uint32
-	engine_bindings_RegisterBlock(block_Name_f_str, block_Name_f_len, block_IsSolid_f_b, block_Color_f_R_f_w, block_Color_f_G_f_w, block_Color_f_B_f_w, block_Color_f_A_f_w, (uint32)(uintptr(unsafe.Pointer(&namespaceid_str))), (uint32)(uintptr(unsafe.Pointer(&namespaceid_len))))
-	var namespaceid string
-	namespaceid = (string)(unsafe.String((*byte)(unsafe.Pointer(uintptr(namespaceid_str))), int(namespaceid_len)))
-	uResetMalloc()
-	return namespaceid
+func RegisterBlock(block BlockType)(string){
+var block_Name_f string;
+block_Name_f=(string)(block.Name);
+var block_Name_f_str uint32;
+var block_Name_f_len uint32;
+block_Name_f_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(block_Name_f))));
+block_Name_f_len=(uint32)(len(block_Name_f));
+var block_Color_f Color;
+block_Color_f=(Color)(block.Color);
+var block_Color_f_R_f uint8;
+block_Color_f_R_f=(uint8)(block_Color_f.R);
+var block_Color_f_R_f_w uint32;
+block_Color_f_R_f_w=(uint32)(block_Color_f_R_f);
+var block_Color_f_G_f uint8;
+block_Color_f_G_f=(uint8)(block_Color_f.G);
+var block_Color_f_G_f_w uint32;
+block_Color_f_G_f_w=(uint32)(block_Color_f_G_f);
+var block_Color_f_B_f uint8;
+block_Color_f_B_f=(uint8)(block_Color_f.B);
+var block_Color_f_B_f_w uint32;
+block_Color_f_B_f_w=(uint32)(block_Color_f_B_f);
+var block_Color_f_A_f uint8;
+block_Color_f_A_f=(uint8)(block_Color_f.A);
+var block_Color_f_A_f_w uint32;
+block_Color_f_A_f_w=(uint32)(block_Color_f_A_f);
+var block_IsSolid_f bool;
+block_IsSolid_f=(bool)(block.IsSolid);
+var block_IsSolid_f_b uint32;
+if block_IsSolid_f{block_IsSolid_f_b=(uint32)(1);
+}else{block_IsSolid_f_b=(uint32)(0);
+};
+var namespaceid_str uint32;
+var namespaceid_len uint32;
+engine_bindings_RegisterBlock(block_Name_f_str,block_Name_f_len,block_IsSolid_f_b,block_Color_f_R_f_w,block_Color_f_G_f_w,block_Color_f_B_f_w,block_Color_f_A_f_w,(uint32)(uintptr(unsafe.Pointer(&namespaceid_str))),(uint32)(uintptr(unsafe.Pointer(&namespaceid_len))));
+var namespaceid string;
+namespaceid=(string)(unsafe.String((*byte)(unsafe.Pointer(uintptr(namespaceid_str))),int(namespaceid_len)));
+uResetMalloc();
+return namespaceid;
 }
-
 //go:wasmimport engine_bindings append-lang
-func engine_bindings_AppendLang(name_str uint32, name_len uint32)
+func engine_bindings_AppendLang(name_str uint32,name_len uint32);
 
-func AppendLang(name string) {
-	var name_str uint32
-	var name_len uint32
-	name_str = (uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))))
-	name_len = (uint32)(len(name))
-	engine_bindings_AppendLang(name_str, name_len)
+func AppendLang(name string){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+engine_bindings_AppendLang(name_str,name_len);
+}
+//go:wasmimport engine_bindings config-set-int
+func engine_bindings_ConfigSetInt(name_str uint32,name_len uint32,value_w int64);
+
+func ConfigSetInt(name string,value int64){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+var value_w int64;
+value_w=(int64)(value);
+engine_bindings_ConfigSetInt(name_str,name_len,value_w);
+}
+//go:wasmimport engine_bindings config-set-float
+func engine_bindings_ConfigSetFloat(name_str uint32,name_len uint32,value_w float64);
+
+func ConfigSetFloat(name string,value float64){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+var value_w float64;
+value_w=(float64)(value);
+engine_bindings_ConfigSetFloat(name_str,name_len,value_w);
+}
+//go:wasmimport engine_bindings config-set-string
+func engine_bindings_ConfigSetString(name_str uint32,name_len uint32,value_str uint32,value_len uint32);
+
+func ConfigSetString(name string,value string){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+var value_str uint32;
+var value_len uint32;
+value_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(value))));
+value_len=(uint32)(len(value));
+engine_bindings_ConfigSetString(name_str,name_len,value_str,value_len);
+}
+//go:wasmimport engine_bindings config-get-int
+func engine_bindings_ConfigGetInt(name_str uint32,name_len uint32,value_w uint32);
+
+func ConfigGetInt(name string)(int64){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+var value_w uint32;
+engine_bindings_ConfigGetInt(name_str,name_len,(uint32)(uintptr(unsafe.Pointer(&value_w))));
+var value int64;
+value=(int64)(value_w);
+return value;
+}
+//go:wasmimport engine_bindings config-get-float
+func engine_bindings_ConfigGetFloat(name_str uint32,name_len uint32,value_w uint32);
+
+func ConfigGetFloat(name string)(float64){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+var value_w uint32;
+engine_bindings_ConfigGetFloat(name_str,name_len,(uint32)(uintptr(unsafe.Pointer(&value_w))));
+var value float64;
+value=(float64)(value_w);
+return value;
+}
+//go:wasmimport engine_bindings config-get-string
+func engine_bindings_ConfigGetString(name_str uint32,name_len uint32,value_str uint32,value_len uint32);
+
+func ConfigGetString(name string)(string){
+var name_str uint32;
+var name_len uint32;
+name_str=(uint32)(uintptr(unsafe.Pointer(unsafe.StringData(name))));
+name_len=(uint32)(len(name));
+var value_str uint32;
+var value_len uint32;
+engine_bindings_ConfigGetString(name_str,name_len,(uint32)(uintptr(unsafe.Pointer(&value_str))),(uint32)(uintptr(unsafe.Pointer(&value_len))));
+var value string;
+value=(string)(unsafe.String((*byte)(unsafe.Pointer(uintptr(value_str))),int(value_len)));
+uResetMalloc();
+return value;
 }

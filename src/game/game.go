@@ -45,6 +45,7 @@ func load_api() {
 	modding.RegisterApiFunction(host.LogError(func(m api.Module, msg string) {
 		slog.Error(fmt.Sprintf("(Mod) (%s) %s", m.Name(), msg))
 	}))
+
 	modding.RegisterApiFunction(host.RegisterBlock(func(m api.Module, block host.BlockType) (namespaceid string) {
 		return RegistryBlocks.RegisterPanic(m.Name(), block.Name, world.BlockType{
 			Color:   color.RGBA(block.Color),
@@ -64,4 +65,8 @@ func load_api() {
 			panic(err)
 		}
 	}))
+
+	// modding.RegisterApiFunction(host.ConfigSetString(func(m api.Module, name, value string) {
+
+	// }))
 }
