@@ -7,7 +7,7 @@ import (
 	"github.com/StoneTrench/go-mat-lib/other"
 	"github.com/StoneTrench/go-mat-lib/vec"
 	"github.com/StoneTrench/go-mc-clone/src/engine"
-	"github.com/StoneTrench/go-mc-clone/src/engine/log"
+	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
 	"github.com/StoneTrench/go-mc-clone/src/game"
 	"github.com/StoneTrench/go-mc-clone/src/game/world"
 	rl "github.com/gen2brain/raylib-go/raylib"

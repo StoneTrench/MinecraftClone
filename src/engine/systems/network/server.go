@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/StoneTrench/go-mc-clone/src/engine/events"
-	"github.com/StoneTrench/go-mc-clone/src/engine/log"
-	"github.com/StoneTrench/go-mc-clone/src/engine/network/protocol"
+	"github.com/StoneTrench/go-mc-clone/src/engine/core/events"
+	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
+	"github.com/StoneTrench/go-mc-clone/src/engine/systems/network/protocol"
 )
 
 type EventSource[T any] = events.EventSource[T]

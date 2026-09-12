@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/StoneTrench/go-mc-clone/src/engine/log"
-	"github.com/StoneTrench/go-mc-clone/src/engine/network"
+	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
+	"github.com/StoneTrench/go-mc-clone/src/engine/systems/network"
 )
 
 func Test(t *testing.T) {

@@ -19,6 +19,7 @@ The engine is made of multiple layers, like an onion. Each layer is only aware o
 	+ Physics
 	+ ECS
 	+ Animation
+	+ Networking
 + Game
 	+ Game state
 	+ Game tick

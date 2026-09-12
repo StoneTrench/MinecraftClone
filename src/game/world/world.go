@@ -1,6 +1,6 @@
 package world
 
-import "github.com/StoneTrench/go-mc-clone/src/engine/ecs"
+import "github.com/StoneTrench/go-mc-clone/src/engine/systems/ecs"
 
 // World is a datastructure containing a game world.
 // Static level is the world/environment.

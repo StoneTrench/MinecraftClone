@@ -8,8 +8,8 @@ import (
 
 	"github.com/StoneTrench/go-mc-clone/bindings/host"
 	"github.com/StoneTrench/go-mc-clone/src/engine"
-	"github.com/StoneTrench/go-mc-clone/src/engine/log"
-	"github.com/StoneTrench/go-mc-clone/src/engine/modding"
+	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
+	"github.com/StoneTrench/go-mc-clone/src/engine/systems/modding"
 	"github.com/StoneTrench/go-mc-clone/src/engine/resources"
 	"github.com/StoneTrench/go-mc-clone/src/game/world"
 	"github.com/tetratelabs/wazero/api"

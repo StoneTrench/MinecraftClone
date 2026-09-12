@@ -3,7 +3,7 @@ package engine
 import (
 	"fmt"
 
-	"github.com/StoneTrench/go-mc-clone/src/engine/log"
+	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
 )
 
 func Init(logDir string) error {

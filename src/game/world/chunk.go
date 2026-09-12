@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/StoneTrench/go-mat-lib/vec"
-	"github.com/StoneTrench/go-mc-clone/src/engine/ecs"
+	"github.com/StoneTrench/go-mc-clone/src/engine/systems/ecs"
 )
 
 type Chunk struct {
