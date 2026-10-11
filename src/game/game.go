@@ -9,23 +9,24 @@ import (
 	"github.com/StoneTrench/go-mc-clone/bindings/host"
 	"github.com/StoneTrench/go-mc-clone/src/engine"
 	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
-	"github.com/StoneTrench/go-mc-clone/src/engine/systems/modding"
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform"
 	"github.com/StoneTrench/go-mc-clone/src/engine/resources"
+	"github.com/StoneTrench/go-mc-clone/src/engine/systems/modding"
 	"github.com/StoneTrench/go-mc-clone/src/game/world"
 	"github.com/tetratelabs/wazero/api"
 )
 
 func Init() error {
 	var err error = nil
-	err = engine.Init("./logs/")
+	err = engine.Init("logs/")
 	if err != nil {
 		return fmt.Errorf("failed to initialize engine: %w", err)
 	}
 
-	log.Info(engine.GetFormattedApplicationLabel())
+	log.Info(platform.GetFormattedApplicationLabel())
 	load_api()
 
-	err = modding.LoadMods("./mods/")
+	err = modding.LoadMods("mods/")
 	if err != nil {
 		log.Error(err)
 	}

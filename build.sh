@@ -10,23 +10,31 @@ echo \[Build\] Collecting info
 __BUILD_NAME="Stone's MC Clone"
 __BUILD_API_VERSION="0"
 
-TARGET_OS="${1:-$(go env GOOS)}"
-TARGET_ARCH="${2:-$(go env GOARCH)}"
+__BUILD_TARGET_OS="${1:-$(go env GOOS)}"
+__BUILD_TARGET_ARCH="${2:-$(go env GOARCH)}"
 __BUILD_MODE="${3:-"DEBUG"}"
-__BUILD_TARGET="${TARGET_OS}/${TARGET_ARCH}"
 
 # Validate OS (basic check)
-case "$TARGET_OS" in
-    windows|linux|darwin) ;;
+case "$__BUILD_TARGET_OS" in
+    windows|linux|darwin|js|wasip1) ;;
     *)
-        echo "ERROR: Unsupported OS '$TARGET_OS'. Supported: windows, linux, darwin"
+        echo "ERROR: Unsupported OS '$__BUILD_TARGET_OS'. Supported: windows, linux, darwin"
         exit 1
         ;;
 esac
 
 OUTPUT_NAME="main"
-if [ "$TARGET_OS" = "windows" ]; then
+if [ "$__BUILD_TARGET_OS" = "windows" ]; then
     OUTPUT_NAME="main.exe"
+fi
+if [ "$__BUILD_TARGET_OS" = "js" ]; then
+    OUTPUT_NAME="main.wasm"
+fi
+if [ "$__BUILD_TARGET_OS" = "wasip1" ]; then
+    OUTPUT_NAME="main.wasm"
+fi
+if [ "$__BUILD_TARGET_ARCH" = "wasm" ]; then
+  CGO_ENABLED=0
 fi
 
 PROJECT_GIT=$(awk '/module/ {print $2}' go.mod)
@@ -48,21 +56,25 @@ sh modbuild.sh
 
 echo \[Build\] Building project
 
-GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -ldflags " \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_NAME=${__BUILD_NAME}\" \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_TAG=${__BUILD_TAG}\" \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_BUILT=${__BUILD_BUILT}\" \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_COMMIT=${__BUILD_COMMIT}\" \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_MODE=${__BUILD_MODE}\" \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_TARGET=${__BUILD_TARGET}\" \
-  -X \"${PROJECT_GIT}/src/engine.BUILD_API_VERSION=${__BUILD_API_VERSION}\"" \
+GOOS="$__BUILD_TARGET_OS" GOARCH="$__BUILD_TARGET_ARCH" go build -ldflags " \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_NAME=${__BUILD_NAME}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_TAG=${__BUILD_TAG}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_BUILT=${__BUILD_BUILT}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_COMMIT=${__BUILD_COMMIT}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_MODE=${__BUILD_MODE}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_TARGET_OS=${__BUILD_TARGET_OS}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_TARGET_ARCH=${__BUILD_TARGET_ARCH}\" \
+  -X \"${PROJECT_GIT}/src/engine/platform.BUILD_API_VERSION=${__BUILD_API_VERSION}\"" \
   -o "./_out/$OUTPUT_NAME"
 
 # ===============================================
 #	ZIP
 # ===============================================
 
-exit
+if [ $__BUILD_MODE != "RELEASE" ]; then
+	exit
+fi
+
 echo \[Build\] Compressing project
 
 if [ ! -f "./_out/$OUTPUT_NAME" ]; then
@@ -71,4 +83,4 @@ if [ ! -f "./_out/$OUTPUT_NAME" ]; then
 fi
 
 mkdir -p ./_dist/
-tar -czf "./_dist/${__BUILD_NAME}_${__BUILD_TAG}-${TARGET_OS}-${TARGET_ARCH}.tar.gz" -C ./_out .
+tar -czf "./_dist/${__BUILD_NAME}_${__BUILD_TAG}-${__BUILD_TARGET_OS}-${__BUILD_TARGET_ARCH}.tar.gz" -C ./_out .

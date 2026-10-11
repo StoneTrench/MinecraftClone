@@ -12,7 +12,7 @@ import (
 	"github.com/StoneTrench/go-mc-clone/src/engine/systems/network/protocol"
 )
 
-type EventSource[T any] = events.EventSource[T]
+type EventSource[T any] = events.SignalSource[T]
 
 type Server struct {
 	mu           sync.RWMutex

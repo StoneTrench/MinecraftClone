@@ -3,8 +3,9 @@ package config
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"os"
+
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform"
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform/filesystem"
 )
 
 type Config struct {
@@ -14,24 +15,19 @@ type Config struct {
 	FloatEntries  map[string]float64 `json:"float_entries"`
 }
 
-func (c *Config) Init(path string) {
+func (c *Config) Init(path string) *Config {
 	c.FilePath = path
 	c.StringEntries = make(map[string]string)
 	c.IntEntries = make(map[string]int64)
 	c.FloatEntries = make(map[string]float64)
+	return c
 }
 
 func (c *Config) OpenOrCreate() error {
-	file, err := os.Open(c.FilePath)
-	if errors.Is(err, os.ErrNotExist) {
-		if file != nil {
-			err = file.Close()
-			if err != nil {
-				return err
-			}
-		}
-		file, err = os.Create(c.FilePath)
+	if !platform.HasFileSystem() {
+		return nil
 	}
+	file, err := filesystem.OpenOrCreate(c.FilePath)
 	if err != nil {
 		return err
 	}
@@ -58,11 +54,14 @@ func (c *Config) OpenOrCreate() error {
 	return nil
 }
 func (c *Config) FlushConfig() error {
+	if !platform.HasFileSystem() {
+		return nil
+	}
 	data, err := json.MarshalIndent(*c, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(c.FilePath, data, 0644)
+	return filesystem.WriteFile(c.FilePath, data)
 }
 
 func (c *Config) GetString(key string) (string, bool) {

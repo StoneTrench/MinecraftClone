@@ -121,7 +121,6 @@ func GenerateChunkMesh(level *world.Level, chunk_pos vec.Vector3[int32], reg_blo
 	mesh.TriangleCount = count_triangle
 	mesh.Vertices = unsafe.SliceData(arr_vertices)
 	mesh.Colors = unsafe.SliceData(arr_color)
-	rl.UploadMesh(&mesh, false)
 
 	return mesh, nil
 }

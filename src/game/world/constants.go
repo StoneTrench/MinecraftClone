@@ -6,9 +6,9 @@ import (
 	. "github.com/StoneTrench/go-mat-lib/vec"
 )
 
-const CHUNK_SIZE_X_EXP = 5
-const CHUNK_SIZE_Y_EXP = 6
-const CHUNK_SIZE_Z_EXP = 5
+const CHUNK_SIZE_X_EXP = 5 // left/right
+const CHUNK_SIZE_Y_EXP = 6 // up/down
+const CHUNK_SIZE_Z_EXP = 5 // from/back
 
 const CHUNK_SIZE_X = 1 << CHUNK_SIZE_X_EXP
 const CHUNK_SIZE_Y = 1 << CHUNK_SIZE_Y_EXP

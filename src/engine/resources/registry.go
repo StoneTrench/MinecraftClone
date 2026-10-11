@@ -49,19 +49,18 @@ type Registry[T any, I constraints.Integer] struct {
 	ident2id_map map[string]I
 }
 
-func CreateRegistry[T any, I constraints.Integer](name string) *Registry[T, I] {
-	r := &Registry[T, I]{name: name}
-	r.Reset()
-	return r
-}
-
-func (r *Registry[T, I]) Reset() {
+func (r *Registry[T, I]) Init(name string) *Registry[T, I] {
+	r.name = name
 	r.resources = make(map[string]T)
 	r.is_frozen = false
 	r.is_id_valid = false
 	r.version = 0
 	r.id2ident_arr = make([]string, 0)
 	r.ident2id_map = make(map[string]I)
+	return r
+}
+func (r *Registry[T, I]) Reset() *Registry[T, I] {
+	return r.Init(r.name)
 }
 
 func (r *Registry[T, I]) GetVersion() uint32 {
@@ -191,7 +190,7 @@ func (r *Registry[T, I]) GetByIdentifier(ident string) (T, error) {
 	defer r.mu.RUnlock()
 	if err := r.err_not_is_frozen(); err != nil {
 		var NA T
-		return NA, r.errorf("failed to get resource by identifier: %w", err)
+		return NA, r.errorf("failed to get resource by identifier (%s): %w", ident, err)
 	}
 	res, exists := r.resources[ident]
 	if !exists {
@@ -204,10 +203,10 @@ func (r *Registry[T, I]) GetId(ident string) (I, error) {
 	defer r.mu.RUnlock()
 	var NA I
 	if err := r.err_not_is_frozen(); err != nil {
-		return NA, r.errorf("failed to get resource id: %w", err)
+		return NA, r.errorf("failed to get resource id (%s): %w", ident, err)
 	}
 	if err := r.err_not_is_id_valid(); err != nil {
-		return NA, r.errorf("failed to get resource by id: %w", err)
+		return NA, r.errorf("failed to get resource by id (%s): %w", ident, err)
 	}
 	res, exists := r.ident2id_map[ident]
 	if !exists {
@@ -220,10 +219,10 @@ func (r *Registry[T, I]) GetIdentifier(id I) (string, error) {
 	defer r.mu.RUnlock()
 	var NA string
 	if err := r.err_not_is_frozen(); err != nil {
-		return NA, r.errorf("failed to get resource identifier: %w", err)
+		return NA, r.errorf("failed to get resource identifier (%d): %w", id, err)
 	}
 	if err := r.err_not_is_id_valid(); err != nil {
-		return NA, r.errorf("failed to get resource by id: %w", err)
+		return NA, r.errorf("failed to get resource by id (%d): %w", id, err)
 	}
 	if 0 > id || id >= I(len(r.id2ident_arr)) {
 		return NA, r.errorf("resource with id (%d) not registered", id)
@@ -237,6 +236,14 @@ func (r *Registry[T, I]) GetById(id I) (T, error) {
 		return NA, err
 	}
 	return r.GetByIdentifier(ident)
+}
+
+func (r *Registry[T, I]) GetIdPanic(ident string) I {
+	res, err := r.GetId(ident)
+	if err != nil {
+		panic(err)
+	}
+	return res
 }
 
 func (r *Registry[T, I]) Iterate() iter.Seq2[string, T] {

@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
+
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform/filesystem"
 )
 
 var language_map map[string]string = make(map[string]string)
@@ -28,7 +29,7 @@ func LangClear() {
 	language_map = make(map[string]string)
 }
 func append_lang(path string, m map[string]string) error {
-	data, err := os.ReadFile(path)
+	data, err := filesystem.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to open json language file: %w", err)
 	}

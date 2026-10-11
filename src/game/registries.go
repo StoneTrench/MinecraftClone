@@ -5,4 +5,4 @@ import (
 	"github.com/StoneTrench/go-mc-clone/src/game/world"
 )
 
-var RegistryBlocks = resources.CreateRegistry[world.BlockType, world.BlockId]("blocks")
+var RegistryBlocks = new(resources.Registry[world.BlockType, world.BlockId]).Init("blocks")

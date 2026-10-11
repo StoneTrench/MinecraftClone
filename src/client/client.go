@@ -4,11 +4,11 @@ package client
 import (
 	"fmt"
 
-	"github.com/StoneTrench/go-mat-lib/other"
 	"github.com/StoneTrench/go-mat-lib/vec"
-	"github.com/StoneTrench/go-mc-clone/src/engine"
 	"github.com/StoneTrench/go-mc-clone/src/engine/core/log"
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform"
 	"github.com/StoneTrench/go-mc-clone/src/game"
+	"github.com/StoneTrench/go-mc-clone/src/game/generation"
 	"github.com/StoneTrench/go-mc-clone/src/game/world"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -38,32 +38,20 @@ func Init() error {
 
 	level := world.CreateLevel()
 	chunk_pos := vec.InitVector3[int32](0, 0, 0)
-	chunk := level.GetChunk(chunk_pos, true)
 
-	STONE, _ := game.RegistryBlocks.GetId("core:stone")
-	GRASS, _ := game.RegistryBlocks.GetId("core:grass")
-	// DIRT := game.RegistryBlocks.GetId("core:dirt")
-	AIR, _ := game.RegistryBlocks.GetId("core:air")
+	chunk := generation.Execute(&generation.Program{
+		Phases: []generation.Phase{
+			BaseTerrain,
+			CarveCaves,
+			Decorate,
+		},
+		BlockRegistry: game.RegistryBlocks,
+	}, chunk_pos, 2).AwaitPanic()
 
-	for local_pos := range world.IterateChunk() {
-		fx := float32(local_pos.X)
-		fz := float32(local_pos.Z)
-		y := local_pos.Y
-		sinX, _ := other.Sincos(fx / 10.0)
-		_, cosZ := other.Sincos(fz / 10.0)
-		h := int32((sinX*cosZ)*12 + 15)
-
-		if y < h {
-			chunk.SetBlock(local_pos, STONE)
-		} else if y < h+1 {
-			chunk.SetBlock(local_pos, GRASS)
-		} else {
-			chunk.SetBlock(local_pos, AIR)
-		}
-	}
+	level.SetChunk(chunk_pos, &chunk)
 
 	rl.SetTraceLogCallback(raylib_trace_log_callback)
-	rl.InitWindow(800, 600, engine.GetFormattedApplicationLabel())
+	rl.InitWindow(800, 600, platform.GetFormattedApplicationLabel())
 	defer rl.CloseWindow()
 
 	cam := rl.Camera{
@@ -78,6 +66,7 @@ func Init() error {
 	if err != nil {
 		return fmt.Errorf("failed to generate chunk mesh: %w", err)
 	}
+	rl.UploadMesh(&msh, false)
 	defer rl.UnloadMesh(&msh)
 	mat := rl.LoadMaterialDefault()
 	defer rl.UnloadMaterial(mat)
@@ -85,7 +74,7 @@ func Init() error {
 	rl.DisableCursor()
 	rl.SetTargetFPS(60)
 
-	for !rl.WindowShouldClose() {
+	update := func() {
 		if rl.IsKeyDown(rl.KeyF2) {
 			rl.TakeScreenshot("screenshot.png")
 		}
@@ -104,6 +93,11 @@ func Init() error {
 			rl.EndMode3D()
 		}
 		rl.EndDrawing()
+	}
+
+	rl.SetMain(update)
+	for !rl.WindowShouldClose() {
+		update()
 	}
 
 	return nil

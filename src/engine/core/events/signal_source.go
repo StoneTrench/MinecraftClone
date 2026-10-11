@@ -5,30 +5,29 @@ import (
 	"sync"
 )
 
-type HandlerId uint64
-
-type EventHandler[T any] func(e T) error
+type SubId uint64
+type Subscriber[T any] func(e T) error
 
 type listener_t[T any] struct {
-	id HandlerId
-	fn EventHandler[T]
+	id SubId
+	fn Subscriber[T]
 }
 
-type EventSource[T any] struct {
+type SignalSource[T any] struct {
 	mu       sync.RWMutex
-	next_id  HandlerId
+	next_id  SubId
 	handlers []listener_t[T]
 }
 
-func NewSource[T any]() *EventSource[T] {
-	return &EventSource[T]{
+func NewSource[T any]() *SignalSource[T] {
+	return &SignalSource[T]{
 		mu:       sync.RWMutex{},
 		next_id:  0,
 		handlers: make([]listener_t[T], 0),
 	}
 }
 
-func (e *EventSource[T]) handle_event(event T) error {
+func (e *SignalSource[T]) handle_event(event T) error {
 	err_list := []error{}
 	for i := range e.handlers {
 		err := e.handlers[i].fn(event)
@@ -39,7 +38,7 @@ func (e *EventSource[T]) handle_event(event T) error {
 	return errors.Join(err_list...)
 }
 
-func (e *EventSource[T]) EmitImmediate(event T) error {
+func (e *SignalSource[T]) EmitImmediate(event T) error {
 	if e == nil {
 		panic("Event source was a null (nil) pointer!")
 	}
@@ -48,14 +47,14 @@ func (e *EventSource[T]) EmitImmediate(event T) error {
 	return e.handle_event(event)
 }
 
-func (e *EventSource[T]) EmitDeferred(event T) {
+func (e *SignalSource[T]) EmitDeferred(event T) {
 	if e == nil {
 		panic("Event source was a null (nil) pointer!")
 	}
 	go e.EmitImmediate(event)
 }
 
-func (e *EventSource[T]) Subscribe(fn EventHandler[T]) HandlerId {
+func (e *SignalSource[T]) Subscribe(fn Subscriber[T]) SubId {
 	if e == nil {
 		panic("Event source was a null (nil) pointer!")
 	}
@@ -70,7 +69,7 @@ func (e *EventSource[T]) Subscribe(fn EventHandler[T]) HandlerId {
 	return id
 }
 
-func (e *EventSource[T]) Unsubscribe(id HandlerId) {
+func (e *SignalSource[T]) Unsubscribe(id SubId) {
 	if e == nil {
 		panic("Event source was a null (nil) pointer!")
 	}

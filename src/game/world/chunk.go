@@ -28,16 +28,24 @@ func (c *Chunk) SetBlock(local_pos vec.Vector3I, id BlockId) error {
 	if c == nil {
 		return fmt.Errorf("nil chunk")
 	}
+	i := LocalToIndex(local_pos)
+	if i < 0 || i >= CHUNK_VOLUME {
+		return fmt.Errorf("outside the bounds of the chunk")
+	}
 
-	c.Blocks[LocalToIndex(local_pos)] = id
+	c.Blocks[i] = id
 	return nil
 }
 func (c *Chunk) GetBlock(local_pos vec.Vector3I) (BlockId, error) {
 	if c == nil {
 		return 0, fmt.Errorf("nil chunk")
 	}
+	i := LocalToIndex(local_pos)
+	if i < 0 || i >= CHUNK_VOLUME {
+		return 0, fmt.Errorf("outside the bounds of the chunk")
+	}
 
-	return c.Blocks[LocalToIndex(local_pos)], nil
+	return c.Blocks[i], nil
 }
 
 func (c *Chunk) AddEntity(id ecs.EntityRef) error {

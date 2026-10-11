@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform/filesystem"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 )
@@ -73,7 +73,7 @@ func (m *Mod) Close() {
 	}
 }
 func (m *Mod) LoadHeader() error {
-	file_mod_json, err := os.ReadFile(path.Join(m.Folder, "mod.json"))
+	file_mod_json, err := filesystem.ReadFile(path.Join(m.Folder, "mod.json"))
 	if err != nil {
 		return fmt.Errorf("failed to read mod.json: %w", err)
 	}
@@ -107,7 +107,7 @@ func (m *Mod) LoadWasm() error {
 	m.Runtime = wazero.NewRuntime(m.ctx)
 
 	file_path := path.Join(m.Folder, "main.wasm")
-	bin, err := os.ReadFile(file_path)
+	bin, err := filesystem.ReadFile(file_path)
 	if err != nil {
 		return fmt.Errorf("failed to open wasm file (%s): %w", m.String(), err)
 	}

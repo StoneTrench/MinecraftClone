@@ -3,23 +3,23 @@ package modding
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path"
 
+	fs "github.com/StoneTrench/go-mc-clone/src/engine/platform/filesystem"
 	"github.com/tetratelabs/wazero/api"
 )
 
-func load_mod_headers(entries []os.DirEntry) ([]Mod, error) {
+func load_mod_headers(folder string, entries []fs.DirEntry) ([]Mod, error) {
 	mods := []Mod{}
 	err_list := []error{}
 	for _, e := range entries {
 		if e.IsDir() {
 			mod := Mod{}
-			mod.Init(path.Join("./mods", e.Name()))
+			mod.Init(path.Join(folder, e.Name()))
 
 			err := mod.LoadHeader()
 			if err != nil {
-				err_list = append(err_list, fmt.Errorf("failed to load a mod header, %w", err))
+				err_list = append(err_list, fmt.Errorf("failed to load a mod header: %w", err))
 			} else {
 				mods = append(mods, mod)
 			}
@@ -41,7 +41,7 @@ func query_dependencies(mod_list []Mod, m Mod) ([]Mod, []error) {
 			if dep.Header.Name == k {
 				if !v.Check(&dep.Version) {
 					err := fmt.Errorf(
-						"wrong version of mod, (%s %s) expects (%s %s), got (%s %s) instead",
+						"wrong version of mod: (%s %s) expects (%s %s), got (%s %s) instead",
 						m.Header.Name,
 						m.Version.String(),
 						k,
@@ -62,7 +62,7 @@ func query_dependencies(mod_list []Mod, m Mod) ([]Mod, []error) {
 
 		if !found {
 			err := fmt.Errorf(
-				"missing dependency, (%s %s) requires dependency (%s %s)",
+				"missing dependency: (%s %s) requires mod (%s %s)",
 				m.Header.Name,
 				m.Version.String(),
 				k,
@@ -128,13 +128,13 @@ var name_to_mod map[string]int
 
 func LoadMods(folder string) error {
 	LoadedModsList = nil
-	entries, err := os.ReadDir(folder)
+	entries, err := fs.ReadDir(folder)
 	if err != nil {
-		return fmt.Errorf("failed to load mods, %w", err)
+		return fmt.Errorf("failed to load mods: %w", err)
 	}
 
 	// Load mod headers
-	mods, err := load_mod_headers(entries)
+	mods, err := load_mod_headers(folder, entries)
 	if err != nil {
 		return err
 	}

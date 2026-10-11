@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var GOLANG = &GoLangBuilder{}
+var GOLANG = new(GoLangBuilder)
 
 type GoLangBuilder struct{}
 

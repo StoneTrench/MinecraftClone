@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 	"time"
+
+	"github.com/StoneTrench/go-mc-clone/src/engine/platform"
 )
 
 // Helper function for log file management.
@@ -41,13 +43,17 @@ func compressAndRemove(srcPath, dstPath string) error {
 // Init initializes the main logger.
 // Should be called once at startup.
 func Init(logDir string, noFile bool) (err error) {
+	if !platform.HasFileSystem() {
+		noFile = true
+	}
+
 	// By the way, these comments are human made and are here cause when I was half asleep debugging the code, I kept thinking parts of this were mistakes lol
 	var latestPath string
 	if !noFile {
 		latestPath = path.Join(logDir, "latest.log")
 	}
 
-	var file *os.File
+	var file io.Writer
 	var old_log_error error
 	if !noFile {
 		// Ignore the mkdir error intentionally
@@ -69,9 +75,13 @@ func Init(logDir string, noFile bool) (err error) {
 		}
 	}
 
-	// handler := slog.NewTextHandler(io.MultiWriter(os.Stdout, file), nil)
+	if file == nil {
+		file = os.Stdout
+	} else {
+		file = io.MultiWriter(os.Stdout, file)
+	}
 
-	handler := NewBracketHandler(io.MultiWriter(os.Stdout, file))
+	handler := NewBracketHandler(file)
 	slog.SetDefault(slog.New(handler))
 
 	if old_log_error != nil {

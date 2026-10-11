@@ -30,5 +30,15 @@ Add grass, this is a rule where stone with air above it becomes grass. Below whi
 ### Phase 4: Features
 Find valid positions for trees, including in neighbouring chunks, then place all the blocks overlapping this chunk in this chunk.
 
-
 Since the entire system is controlled/built using an api, I have to build a programmable world generator.
+
+## A Phase
+
+A phase is basically a function, you have to specify which previous phase result it uses, whether it needs neighbour phases or region data. Then it does something to produce a PhaseResult, which eventually turns into chunk data.
+
+There's technically no reason to force these phases to be one line of steps, they could have a tree like structure, where the root node is the final phase that results in ChunkData. This shouldn't stop the engine from being able to multithread them.
+
+The world generator program is essentially a DAG.
+
++ Force the final phase to return chunk data.
++ There's only one final phase.
